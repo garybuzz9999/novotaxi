@@ -575,23 +575,35 @@
 <div class="screen" id="screen-driver-auth">
   <div class="auth-header">
     <button class="back-btn" onclick="showScreen('screen-role')">‹</button>
-    <h2>Реєстрація водія</h2>
+    <h2>Вхід для водія / кур'єра</h2>
   </div>
   <div class="auth-body">
     <div class="auth-hero">
       <div class="auth-emoji">🚗</div>
-      <div class="auth-title">Водій / Кур'єр</div>
+      <div class="auth-title">Вхід або реєстрація</div>
       <div class="auth-sub">7 днів безкоштовно.<br>Далі 300 грн/міс — оплата в додатку.</div>
     </div>
-    <div style="background:var(--surface);border-radius:12px;padding:18px;margin-bottom:14px">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ваш email для реєстрації</div>
-      <input type="email" id="driverEmail" placeholder="your@email.com"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--text);outline:none;margin-bottom:10px">
+    <button class="social-btn" onclick="signInDriverGoogle()">
+      <span class="icon">🔵</span>
+      Продовжити з Google
+    </button>
+    <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
+      <span class="icon">🍎</span>
+      Продовжити з Apple
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <div style="flex:1;height:.5px;background:var(--border)"></div>
+      <span style="font-size:12px;color:var(--hint)">або email</span>
+      <div style="flex:1;height:.5px;background:var(--border)"></div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:12px">
+      <input type="email" id="driverEmail" placeholder="Email адреса"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--text);outline:none;margin-bottom:10px">
       <input type="password" id="driverPass" placeholder="Пароль (мін. 6 символів)"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--text);outline:none">
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--text);outline:none">
     </div>
     <button class="btn-primary dark" onclick="registerDriver()">
-      📧 Зареєструватись через Email
+      📧 Увійти / Зареєструватись
     </button>
     <div style="font-size:12px;color:var(--hint);text-align:center;margin-top:14px;line-height:1.7">
       Реєструючись ви погоджуєтесь з умовами.<br>
@@ -670,6 +682,12 @@ function initMap() {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
+  // Робимо db/ref/get/set глобальними для бек-офісу
+  window._db = db;
+  window._ref = ref;
+  window._get = get;
+  window._set = set;
+
   // перевіряємо підключення
   document.getElementById('loaderText').textContent = 'Читаємо конфіг...';
 
@@ -736,7 +754,38 @@ function initMap() {
     }
   });
 
-  // Google Sign In
+  // Google Sign In для ВОДІЯ
+  window.signInDriverGoogle = async () => {
+    try {
+      showToast('Відкриваємо Google...');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // перевіряємо чи є вже водієм
+      const snap = await get(ref(db, 'drivers/' + user.uid));
+      if (!snap.exists()) {
+        // новий водій — створюємо запис
+        await set(ref(db, 'drivers/' + user.uid), {
+          name: user.displayName || 'Водій',
+          email: user.email,
+          role: 'driver',
+          active: false,
+          online: false,
+          services: ['taxi'],
+          created_at: new Date().toISOString(),
+          trial_until: new Date(Date.now() + 7*24*60*60*1000).toISOString()
+        });
+        showToast('✅ Акаунт водія створено!');
+      } else {
+        showToast('✅ Вхід виконано!');
+      }
+      localStorage.setItem('nt_role', 'driver');
+      showScreen('screen-main');
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
+
+  // Google Sign In для КЛІЄНТА
   window.signInGoogle = async () => {
     try {
       showToast('Відкриваємо Google...');
@@ -912,9 +961,9 @@ function initMap() {
   window.boRefreshStats = async () => {
     try {
       const [dSnap, oSnap, cfgSnap] = await Promise.all([
-        get(ref(db,'drivers')),
-        get(ref(db,'orders')),
-        get(ref(db,'config/settings'))
+        window._get(window._ref(db,'drivers')),
+        window._get(window._ref(db,'orders')),
+        window._get(window._ref(db,'config/settings'))
       ]);
       const drivers = dSnap.val() || {};
       const orders = oSnap.val() || {};
@@ -937,7 +986,7 @@ function initMap() {
   window.boLoadDrivers = async () => {
     const el = document.getElementById('bo-drivers-list');
     try {
-      const snap = await get(ref(db,'drivers'));
+      const snap = await window._get(window._ref(db,'drivers'));
       const drivers = snap.val() || {};
       if (Object.keys(drivers).length === 0) {
         el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Водіїв ще немає</div>';
@@ -969,7 +1018,7 @@ function initMap() {
   };
 
   window.boToggleDriver = async (uid, active) => {
-    await set(ref(db,'drivers/'+uid+'/active'), active);
+    await window._set(window._ref(db,'drivers/'+uid+'/active'), active);
     showToast(active ? '✅ Водія активовано' : '🚫 Водія заблоковано');
     boLoadDrivers();
   };
@@ -980,7 +1029,7 @@ function initMap() {
     let code = '';
     for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
     const expires = new Date(Date.now() + 48*60*60*1000).toISOString();
-    await set(ref(db,'invite_codes/'+code), {
+    await window._set(window._ref(db,'invite_codes/'+code), {
       vehicle_type: type, used: false,
       expires_at: expires, created_at: new Date().toISOString()
     });
@@ -1001,7 +1050,7 @@ function initMap() {
   window.boLoadCodes = async () => {
     const el = document.getElementById('bo-codes-list');
     try {
-      const snap = await get(ref(db,'invite_codes'));
+      const snap = await window._get(window._ref(db,'invite_codes'));
       const codes = snap.val() || {};
       const active = Object.entries(codes).filter(([,c])=>!c.used);
       if (active.length === 0) {
@@ -1021,14 +1070,14 @@ function initMap() {
   };
 
   window.boDeleteCode = async (code) => {
-    await set(ref(db,'invite_codes/'+code+'/used'), true);
+    await window._set(window._ref(db,'invite_codes/'+code+'/used'), true);
     showToast('🗑️ Код анульовано');
     boLoadCodes();
   };
 
   window.boLoadTariffs = async () => {
     try {
-      const snap = await get(ref(db,'config/tariffs'));
+      const snap = await window._get(window._ref(db,'config/tariffs'));
       if (!snap.exists()) return;
       const t = snap.val();
       ['std','est','bus','cargo','courier'].forEach(type => {
@@ -1051,14 +1100,14 @@ function initMap() {
         wait: parseInt(document.getElementById('t-'+type+'-wait').value)
       };
     });
-    await set(ref(db,'config/tariffs'), tariffs);
+    await window._set(window._ref(db,'config/tariffs'), tariffs);
     window._tariffs = tariffs;
     showToast('✅ Тарифи збережено в Firebase!');
   };
 
   window.boLoadSettings = async () => {
     try {
-      const snap = await get(ref(db,'config/settings'));
+      const snap = await window._get(window._ref(db,'config/settings'));
       if (!snap.exists()) return;
       const s = snap.val();
       if(s.trial_days !== undefined) document.getElementById('s-trial').value = s.trial_days;
@@ -1079,7 +1128,7 @@ function initMap() {
       grace_days: parseInt(document.getElementById('s-grace').value),
       queue_timer_seconds: parseInt(document.getElementById('s-timer').value)
     };
-    await set(ref(db,'config/settings'), {...(await get(ref(db,'config/settings'))).val(), ...settings});
+    await window._set(window._ref(db,'config/settings'), {...(await window._get(window._ref(db,'config/settings'))).val(), ...settings});
     showToast('✅ Налаштування збережено!');
   };
 
@@ -1089,15 +1138,15 @@ function initMap() {
       courier_announcements: document.getElementById('sw-courier').classList.contains('on'),
       maintenance: document.getElementById('sw-maint').classList.contains('on')
     };
-    const cur = (await get(ref(db,'config/settings'))).val() || {};
-    await set(ref(db,'config/settings'), {...cur, ...features});
+    const cur = (await window._get(window._ref(db,'config/settings'))).val() || {};
+    await window._set(window._ref(db,'config/settings'), {...cur, ...features});
     showToast('✅ Функції збережено!');
   };
 
   window.boSaveMessage = async () => {
     const msg = document.getElementById('s-message').value;
-    const cur = (await get(ref(db,'config/settings'))).val() || {};
-    await set(ref(db,'config/settings'), {...cur, system_message: msg});
+    const cur = (await window._get(window._ref(db,'config/settings'))).val() || {};
+    await window._set(window._ref(db,'config/settings'), {...cur, system_message: msg});
     showToast('✅ Повідомлення збережено!');
   };
 
@@ -1109,7 +1158,7 @@ function initMap() {
   window.boLoadOrders = async () => {
     const el = document.getElementById('bo-orders-list');
     try {
-      const snap = await get(ref(db,'orders'));
+      const snap = await window._get(window._ref(db,'orders'));
       const orders = snap.val() || {};
       if (Object.keys(orders).length === 0) {
         el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Замовлень ще немає</div>';
