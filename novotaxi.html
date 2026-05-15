@@ -695,6 +695,31 @@ function initMap() {
     }
   });
 
+  // Вихід з акаунту — доступний глобально
+  window.signOutUser = async () => {
+    try {
+      const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      await signOut(auth);
+      localStorage.removeItem('nt_phone');
+      showScreen('screen-role');
+      showToast('✅ Ви вийшли з акаунту');
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
+
+  // Профіль — дані користувача
+  window.showProfileData = () => {
+    const user = auth.currentUser;
+    if (user) {
+      const initials = (user.displayName||user.email||'?').substring(0,2).toUpperCase();
+      document.getElementById('prof-avatar').textContent = initials;
+      document.getElementById('prof-name').textContent = user.displayName || 'Клієнт';
+      document.getElementById('prof-email').textContent = user.email || '';
+      document.getElementById('prof-phone').textContent = localStorage.getItem('nt_phone') || 'не вказано';
+    }
+  };
+
   // стан авторизації
   onAuthStateChanged(auth, user => {
     document.getElementById('loader').style.display = 'none';
@@ -849,25 +874,11 @@ function initMap() {
 
   function showProfile() {
     showScreen('screen-profile');
-    const user = auth.currentUser;
-    if (user) {
-      document.getElementById('prof-name').textContent = user.displayName || user.email || 'Клієнт';
-      document.getElementById('prof-email').textContent = user.email || '';
-      document.getElementById('prof-phone').textContent = localStorage.getItem('nt_phone') || 'не вказано';
-    }
+    if (window.showProfileData) window.showProfileData();
   }
 
-  // Вихід з акаунту
-  window.signOutUser = async () => {
-    try {
-      await auth.signOut();
-      localStorage.removeItem('nt_phone');
-      showScreen('screen-role');
-      showToast('✅ Ви вийшли з акаунту');
-    } catch(e) {
-      showToast('Помилка: ' + e.message);
-    }
-  };
+  // signOutUser визначається в module блоці нижче
+
 
   // ===== БЕК-ОФІС =====
   const BO_PASSWORD = 'novotaxi2026';
