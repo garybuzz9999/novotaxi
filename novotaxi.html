@@ -367,6 +367,8 @@
   .bo-login-logo span:last-child { color: var(--accent); }
   .bo-login-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
   .bo-login-card { background: var(--surface); border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; }
+  .reg-step-active { background: var(--accent); color: var(--black); border: none; }
+  .reg-step-inactive { background: transparent; color: var(--hint); border: 1.5px solid var(--border); }
 </style>
 </head>
 <body>
@@ -739,8 +741,15 @@ function initMap() {
       get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
         if (snap.exists()) {
           window._isDriver = true;
-          showScreen('screen-driver-main');
-          if (window.initDriverScreen) window.initDriverScreen();
+          // Перевіряємо чи заповнена реєстрація
+          var drvData = snap.val() || {};
+          if (!drvData.registered) {
+            showScreen('screen-driver-reg');
+            if (window.drvRegNext) window.drvRegNext(1);
+          } else {
+            showScreen('screen-driver-main');
+            if (window.initDriverScreen) window.initDriverScreen();
+          }
         } else {
           window._isDriver = false;
           var phone = localStorage.getItem('nt_phone');
@@ -777,8 +786,17 @@ function initMap() {
       }
       window._currentUid = user.uid;
       window._isDriver = true;
-      showScreen('screen-driver-main');
-      if (window.initDriverScreen) window.initDriverScreen();
+      // Перевіряємо чи заповнив реєстрацію
+      const driverSnap = await get(ref(db, 'drivers/' + user.uid));
+      const driverData = driverSnap.val() || {};
+      if (!driverData.registered) {
+        // Потрібна реєстрація
+        showScreen('screen-driver-reg');
+        window.drvRegNext(1);
+      } else {
+        showScreen('screen-driver-main');
+        if (window.initDriverScreen) window.initDriverScreen();
+      }
     } catch(e) {
       showToast('Помилка: ' + e.message);
     }
@@ -871,6 +889,87 @@ function initMap() {
     showToast('🔍 Шукаємо водія...');
   };
 
+
+  // ===== РЕЄСТРАЦІЯ ВОДІЯ =====
+  var _drvSelSvcs = new Set();
+
+  window.checkDrvPhone = function() {
+    var v = document.getElementById('drv-reg-phone').value.replace(/\D/g,'');
+    var btn = document.getElementById('drv-reg-btn1');
+    btn.disabled = v.length < 9;
+    btn.style.opacity = v.length < 9 ? '.35' : '1';
+  };
+
+  window.drvRegNext = function(step) {
+    [1,2,3].forEach(function(i) {
+      var p = document.getElementById('drv-reg-p' + i);
+      if (p) p.style.display = i === step ? 'flex' : 'none';
+      // для p2 і p3 display block
+      if (p && i === step && i > 1) p.style.display = 'block';
+    });
+    document.getElementById('drv-reg-step-lbl').textContent = 'Крок ' + step + ' з 3';
+    // Прогрес dots
+    [1,2,3].forEach(function(i) {
+      var el = document.getElementById('drv-reg-s' + i);
+      if (!el) return;
+      if (i < step) { el.style.background = '#4cd964'; el.style.color = '#000'; el.style.border = 'none'; }
+      else if (i === step) { el.style.background = 'var(--accent)'; el.style.color = 'var(--black)'; el.style.border = 'none'; }
+      else { el.style.background = 'transparent'; el.style.color = 'var(--hint)'; el.style.border = '1.5px solid var(--border)'; }
+      if (i < step) {
+        var l = document.getElementById('drv-reg-l' + i);
+        if (l) l.style.background = '#4cd964';
+      }
+    });
+  };
+
+  window.drvToggleSvc = function(svc) {
+    if (_drvSelSvcs.has(svc)) {
+      _drvSelSvcs.delete(svc);
+      document.getElementById('drv-svc-' + svc).style.borderColor = 'var(--border)';
+      document.getElementById('drv-svc-' + svc).style.background = 'var(--surface)';
+      document.getElementById('drv-svc-' + svc + '-chk').innerHTML = '';
+      document.getElementById('drv-svc-' + svc + '-chk').style.background = 'transparent';
+    } else {
+      _drvSelSvcs.add(svc);
+      document.getElementById('drv-svc-' + svc).style.borderColor = 'var(--accent2)';
+      document.getElementById('drv-svc-' + svc).style.background = 'rgba(232,184,0,.06)';
+      document.getElementById('drv-svc-' + svc + '-chk').innerHTML = '✓';
+      document.getElementById('drv-svc-' + svc + '-chk').style.cssText = 'width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--black);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0';
+    }
+    var btn3 = document.getElementById('drv-reg-btn3');
+    btn3.disabled = _drvSelSvcs.size === 0;
+    btn3.style.opacity = _drvSelSvcs.size === 0 ? '.35' : '1';
+  };
+
+  window.drvRegFinish = async function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    var phone = '+380' + document.getElementById('drv-reg-phone').value.replace(/\D/g,'');
+    var model = document.getElementById('drv-reg-model').value.trim();
+    var plate = document.getElementById('drv-reg-plate').value.trim().toUpperCase();
+    var color = document.getElementById('drv-reg-color').value.trim();
+    var services = Array.from(_drvSelSvcs);
+
+    try {
+      var snap = await get(ref(db, 'drivers/' + uid));
+      var existing = snap.val() || {};
+      await set(ref(db, 'drivers/' + uid), Object.assign({}, existing, {
+        phone: phone,
+        vehicle_model: model,
+        vehicle_plate: plate,
+        vehicle_color: color,
+        services: services,
+        registered: true,
+        active: true,
+        online: false
+      }));
+      showToast('✅ Реєстрацію завершено!');
+      showScreen('screen-driver-main');
+      if (window.initDriverScreen) window.initDriverScreen();
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
   // ===== КАБІНЕТ ВОДІЯ =====
   let _drvOnline = false;
   let _drvTimer = null;
@@ -1569,6 +1668,141 @@ function initMap() {
 </div>
 
 
+
+<!-- SCREEN: РЕЄСТРАЦІЯ ВОДІЯ -->
+<div class="screen" id="screen-driver-reg">
+  <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px">
+    <div style="font-size:16px;font-weight:500"><span style="color:#fff">Novo</span><span style="color:var(--accent)">Taxi</span></div>
+    <div style="margin-left:auto;font-size:12px;color:rgba(255,255,255,.4)" id="drv-reg-step-lbl">Крок 1 з 3</div>
+  </div>
+
+  <!-- Прогрес -->
+  <div style="display:flex;align-items:center;padding:12px 20px;background:#1a1a1a;border-bottom:.5px solid var(--border)">
+    <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0" id="drv-reg-s1" class="reg-step-active">1</div>
+    <div style="flex:1;height:2px;background:var(--border)" id="drv-reg-l1"></div>
+    <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0" id="drv-reg-s2" class="reg-step-inactive">2</div>
+    <div style="flex:1;height:2px;background:var(--border)" id="drv-reg-l2"></div>
+    <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0" id="drv-reg-s3" class="reg-step-inactive">3</div>
+  </div>
+
+  <!-- КРОК 1: Телефон -->
+  <div id="drv-reg-p1" style="padding:20px 16px;flex:1;display:flex;flex-direction:column">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:44px;margin-bottom:10px">📱</div>
+      <div style="font-size:20px;font-weight:500;color:var(--text)">Ваш телефон</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:6px">Тільки ви бачите свій номер<br>Клієнти не бачать його</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Номер телефону</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;font-weight:500;color:var(--text);flex-shrink:0">🇺🇦 +380</div>
+        <input type="tel" id="drv-reg-phone" placeholder="67 123 45 67" maxlength="12"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:18px;font-weight:500;color:var(--text);outline:none;letter-spacing:1px"
+          oninput="checkDrvPhone()">
+      </div>
+    </div>
+    <div style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:12px;padding:12px 16px;margin-bottom:20px;display:flex;gap:10px">
+      <span style="font-size:18px;flex-shrink:0">🔒</span>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:#f5a623">Тільки для вас</div>
+        <div style="font-size:12px;color:#f5a623;opacity:.8;margin-top:3px;line-height:1.5">Номер використовується для зв'язку з диспетчером і не показується клієнтам</div>
+      </div>
+    </div>
+    <button id="drv-reg-btn1" onclick="drvRegNext(2)" disabled
+      style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;opacity:.35">
+      Далі →
+    </button>
+  </div>
+
+  <!-- КРОК 2: Авто -->
+  <div id="drv-reg-p2" style="padding:20px 16px;display:none">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:44px;margin-bottom:10px">🚗</div>
+      <div style="font-size:20px;font-weight:500;color:var(--text)">Ваш транспорт</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:6px">Клієнт побачить цю інформацію</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Марка і модель</div>
+        <input type="text" id="drv-reg-model" placeholder="Toyota Camry 2019"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--text);outline:none">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Номерний знак</div>
+        <input type="text" id="drv-reg-plate" placeholder="АА 1234 ВС"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;font-weight:500;color:var(--text);outline:none;text-transform:uppercase;letter-spacing:2px">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Колір</div>
+        <input type="text" id="drv-reg-color" placeholder="Чорний"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--text);outline:none">
+      </div>
+    </div>
+    <button onclick="drvRegNext(3)"
+      style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer">
+      Далі →
+    </button>
+    <button onclick="drvRegNext(1)" style="width:100%;background:none;border:none;color:var(--hint);font-size:13px;cursor:pointer;margin-top:10px">← Назад</button>
+  </div>
+
+  <!-- КРОК 3: Послуги -->
+  <div id="drv-reg-p3" style="padding:20px 16px;display:none">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:44px;margin-bottom:10px">⚙️</div>
+      <div style="font-size:20px;font-weight:500;color:var(--text)">Ваші послуги</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:6px">Виберіть що надаєте</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <div id="drv-svc-std" onclick="drvToggleSvc('std')"
+        style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer">
+        <span style="font-size:26px;flex-shrink:0">🚗</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">Стандарт / Універсал</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Посадка 30-40 грн · 5-6 грн/км</div>
+        </div>
+        <div id="drv-svc-std-chk" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0"></div>
+      </div>
+
+      <div id="drv-svc-bus" onclick="drvToggleSvc('bus')"
+        style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer">
+        <span style="font-size:26px;flex-shrink:0">🚐</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">Бус пасажирський</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Посадка 60 грн · 8 грн/км</div>
+        </div>
+        <div id="drv-svc-bus-chk" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0"></div>
+      </div>
+
+      <div id="drv-svc-cargo" onclick="drvToggleSvc('cargo')"
+        style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer">
+        <span style="font-size:26px;flex-shrink:0">🚛</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">Бус вантажний до 5т</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Посадка 80 грн · 10 грн/км</div>
+        </div>
+        <div id="drv-svc-cargo-chk" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0"></div>
+      </div>
+
+      <div id="drv-svc-courier" onclick="drvToggleSvc('courier')"
+        style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer">
+        <span style="font-size:26px;flex-shrink:0">📦</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">Кур'єр</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Посадка 30 грн · 5 грн/км</div>
+        </div>
+        <div id="drv-svc-courier-chk" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0"></div>
+      </div>
+    </div>
+
+    <button id="drv-reg-btn3" onclick="drvRegFinish()"
+      style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;opacity:.35"
+      disabled>
+      ✅ Зареєструватись
+    </button>
+    <button onclick="drvRegNext(2)" style="width:100%;background:none;border:none;color:var(--hint);font-size:13px;cursor:pointer;margin-top:10px">← Назад</button>
+  </div>
+</div>
 <!-- SCREEN: КАБІНЕТ ВОДІЯ -->
 <div class="screen" id="screen-driver-main">
   <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
