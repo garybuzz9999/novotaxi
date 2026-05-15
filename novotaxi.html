@@ -296,6 +296,77 @@
   }
   .phone-summary-val { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
   .phone-locked { font-size: 12px; color: var(--hint); display: flex; align-items: center; gap: 4px; }
+
+  /* БЕК-ОФІС */
+  .bo-header { background: var(--black); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+  .bo-logo { font-size: 16px; font-weight: 500; }
+  .bo-logo span:first-child { color: #fff; }
+  .bo-logo span:last-child { color: var(--accent); }
+  .bo-admin-badge { font-size: 11px; color: rgba(255,255,255,.4); background: rgba(255,255,255,.08); padding: 3px 10px; border-radius: 20px; }
+  .bo-nav { display: flex; background: #1a1a1a; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; position: sticky; top: 44px; z-index: 19; }
+  .bo-nav::-webkit-scrollbar { display: none; }
+  .bo-tab { padding: 10px 14px; font-size: 12px; color: var(--hint); cursor: pointer; border: none; background: none; white-space: nowrap; border-bottom: 2px solid transparent; }
+  .bo-tab.on { color: var(--text); font-weight: 500; border-bottom-color: var(--accent2); }
+  .bo-page { display: none; padding: 14px 16px; }
+  .bo-page.on { display: block; }
+  .bo-lbl { font-size: 11px; font-weight: 500; color: var(--hint); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+  .bo-stat-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 16px; }
+  .bo-stat { background: var(--surface); border-radius: 12px; padding: 12px; text-align: center; }
+  .bo-stat-val { font-size: 24px; font-weight: 500; color: var(--text); }
+  .bo-stat-val.a { color: var(--accent2); }
+  .bo-stat-val.g { color: #4cd964; }
+  .bo-stat-val.r { color: #ff453a; }
+  .bo-stat-val.w { color: #f5a623; }
+  .bo-stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .bo-card { background: var(--surface); border-radius: 12px; padding: 14px; margin-bottom: 10px; border: .5px solid var(--border); }
+  .bo-driver-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bo-ava { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--black); flex-shrink: 0; }
+  .bo-driver-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .bo-driver-meta { font-size: 11px; color: var(--hint); margin-top: 1px; }
+  .bo-status { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; margin-left: auto; white-space: nowrap; }
+  .bo-status.ok { background: rgba(76,217,100,.15); color: #4cd964; }
+  .bo-status.warn { background: rgba(245,166,35,.15); color: #f5a623; }
+  .bo-status.off { background: rgba(255,69,58,.15); color: #ff453a; }
+  .bo-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bo-pill { font-size: 11px; color: var(--muted); background: var(--surface2); border: .5px solid var(--border); border-radius: 20px; padding: 2px 8px; }
+  .bo-actions { display: flex; gap: 6px; margin-left: auto; }
+  .bo-act { width: 30px; height: 30px; border-radius: 8px; border: .5px solid var(--border); background: var(--surface2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .bo-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .bo-field label { font-size: 12px; color: var(--muted); }
+  .bo-input { background: var(--surface2); border: .5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--text); outline: none; width: 100%; }
+  .bo-input:focus { border-color: var(--accent2); }
+  .bo-stepper-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .bo-stepper-lbl { font-size: 13px; color: var(--muted); flex: 1; }
+  .bo-stepper { display: flex; align-items: center; border: .5px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .bo-stepper button { width: 36px; height: 36px; border: none; background: var(--surface2); color: var(--text); font-size: 20px; cursor: pointer; }
+  .bo-stepper input { width: 48px; border: none; border-left: .5px solid var(--border); border-right: .5px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500; text-align: center; padding: 6px 0; outline: none; }
+  .bo-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: .5px solid var(--border); }
+  .bo-toggle-row:last-child { border-bottom: none; }
+  .bo-toggle-info p:first-child { font-size: 13px; font-weight: 500; color: var(--text); }
+  .bo-toggle-info p:last-child { font-size: 11px; color: var(--hint); margin-top: 2px; }
+  .bo-sw { width: 42px; height: 24px; border-radius: 12px; position: relative; cursor: pointer; border: none; transition: background .2s; flex-shrink: 0; }
+  .bo-sw.on { background: #4cd964; } .bo-sw.off { background: var(--border); }
+  .bo-sw::after { content:''; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:3px; transition:left .2s; }
+  .bo-sw.on::after { left:21px; } .bo-sw.off::after { left:3px; }
+  .bo-btn { width: 100%; background: var(--black); color: var(--accent); border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+  .bo-tariff { background: var(--surface); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .bo-tariff-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; font-weight: 500; color: var(--text); }
+  .bo-tariff-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+  .bo-tf { display: flex; flex-direction: column; gap: 4px; }
+  .bo-tf label { font-size: 11px; color: var(--hint); }
+  .bo-tf-row { display: flex; align-items: center; gap: 4px; background: var(--surface2); border: .5px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+  .bo-tf-row input { flex: 1; border: none; background: transparent; font-size: 14px; font-weight: 500; color: var(--text); outline: none; min-width: 0; }
+  .bo-tf-row span { font-size: 11px; color: var(--hint); flex-shrink: 0; }
+  .bo-code-result { background: var(--surface2); border: 1.5px solid var(--accent2); border-radius: 12px; padding: 16px; margin-top: 10px; text-align: center; display: none; }
+  .bo-code-val { font-size: 32px; font-weight: 500; letter-spacing: 8px; color: var(--text); margin: 8px 0; }
+  .bo-copy-btn { background: var(--black); color: var(--accent); border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+  /* Пароль адміна */
+  .bo-login { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; background: var(--bg); }
+  .bo-login-logo { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .bo-login-logo span:first-child { color: #fff; }
+  .bo-login-logo span:last-child { color: var(--accent); }
+  .bo-login-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+  .bo-login-card { background: var(--surface); border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; }
 </style>
 </head>
 <body>
@@ -333,6 +404,9 @@
         <div class="role-desc">Хочу приймати замовлення і заробляти</div>
       </div>
       <div class="role-arrow">›</div>
+    </div>
+    <div style="text-align:center;margin-bottom:8px">
+      <button onclick="openBackoffice()" style="background:none;border:.5px solid var(--border);color:var(--hint);border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer">⚙️ Панель адміністратора</button>
     </div>
     <div class="role-footer">
       Один додаток для всіх.<br>
@@ -776,6 +850,471 @@ function initMap() {
   function showProfile() {
     showToast('Профіль — в наступній версії');
   }
+
+  // ===== БЕК-ОФІС =====
+  const BO_PASSWORD = 'novotaxi2026';
+
+  window.openBackoffice = () => showScreen('screen-bo-login');
+
+  window.boLogin = () => {
+    const pwd = document.getElementById('boPassword').value;
+    if (pwd === BO_PASSWORD) {
+      showScreen('screen-backoffice');
+      boRefreshStats();
+      boLoadDrivers();
+      boLoadTariffs();
+      boLoadSettings();
+      boLoadCodes();
+      boLoadOrders();
+    } else {
+      showToast('❌ Невірний пароль');
+    }
+  };
+
+  window.boLogout = () => showScreen('screen-role');
+
+  window.boNav = (id, btn) => {
+    document.querySelectorAll('.bo-page').forEach(p=>p.classList.remove('on'));
+    document.querySelectorAll('.bo-tab').forEach(b=>b.classList.remove('on'));
+    document.getElementById('bo-'+id).classList.add('on');
+    btn.classList.add('on');
+  };
+
+  window.boRefreshStats = async () => {
+    try {
+      const [dSnap, oSnap, cfgSnap] = await Promise.all([
+        get(ref(db,'drivers')),
+        get(ref(db,'orders')),
+        get(ref(db,'config/settings'))
+      ]);
+      const drivers = dSnap.val() || {};
+      const orders = oSnap.val() || {};
+      const cfg = cfgSnap.val() || {};
+      const total = Object.keys(drivers).length;
+      const online = Object.values(drivers).filter(d=>d.online).length;
+      const ordersCount = Object.keys(orders).length;
+      const active = Object.values(drivers).filter(d=>d.active).length;
+      document.getElementById('bs-online').textContent = online;
+      document.getElementById('bs-orders').textContent = ordersCount;
+      document.getElementById('bs-drivers').textContent = total;
+      document.getElementById('bs-active').textContent = active;
+      if (cfg.trial_days !== undefined) {
+        document.getElementById('bo-trial-info').textContent = '⏳ Пробний: ' + cfg.trial_days + ' днів';
+        document.getElementById('bo-price-info').textContent = '💰 Підписка: ' + cfg.subscription_price + ' грн/міс';
+      }
+    } catch(e) { showToast('Помилка: ' + e.message); }
+  };
+
+  window.boLoadDrivers = async () => {
+    const el = document.getElementById('bo-drivers-list');
+    try {
+      const snap = await get(ref(db,'drivers'));
+      const drivers = snap.val() || {};
+      if (Object.keys(drivers).length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Водіїв ще немає</div>';
+        return;
+      }
+      el.innerHTML = Object.entries(drivers).map(([uid, d]) => {
+        const initials = (d.name||d.email||'?').substring(0,2).toUpperCase();
+        const status = d.active ? 'ok' : 'off';
+        const statusTxt = d.active ? 'Активний' : 'Не активний';
+        const onlineDot = d.online ? '🟢' : '⚫';
+        return `<div class="bo-card">
+          <div class="bo-driver-row">
+            <div class="bo-ava">${initials}</div>
+            <div><div class="bo-driver-name">${d.name||d.email||uid.substring(0,8)}</div>
+            <div class="bo-driver-meta">${onlineDot} ${d.email||''}</div></div>
+            <span class="bo-status ${status}">${statusTxt}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="bo-pills">
+              ${(d.services||['taxi']).map(s=>`<span class="bo-pill">${s}</span>`).join('')}
+            </div>
+            <div class="bo-actions" style="margin-left:auto">
+              <button class="bo-act" onclick="boToggleDriver('${uid}',${!d.active})" title="${d.active?'Заблокувати':'Активувати'}">${d.active?'🚫':'✅'}</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) { el.innerHTML = '<div style="color:var(--red);padding:14px">Помилка: '+e.message+'</div>'; }
+  };
+
+  window.boToggleDriver = async (uid, active) => {
+    await set(ref(db,'drivers/'+uid+'/active'), active);
+    showToast(active ? '✅ Водія активовано' : '🚫 Водія заблоковано');
+    boLoadDrivers();
+  };
+
+  window.boGenCode = async () => {
+    const type = document.getElementById('bo-code-type').value;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+    const expires = new Date(Date.now() + 48*60*60*1000).toISOString();
+    await set(ref(db,'invite_codes/'+code), {
+      vehicle_type: type, used: false,
+      expires_at: expires, created_at: new Date().toISOString()
+    });
+    const names = {std:'Стандарт',est:'Універсал',bus:'Бус пас.',cargo:'Бус вант.',courier:"Кур'єр"};
+    document.getElementById('bo-code-val').textContent = code;
+    document.getElementById('bo-code-type-label').textContent = names[type];
+    document.getElementById('bo-code-result').style.display = 'block';
+    showToast('✅ Код ' + code + ' збережено в Firebase');
+    boLoadCodes();
+  };
+
+  window.boCopyCode = () => {
+    const code = document.getElementById('bo-code-val').textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(code);
+    showToast('📋 Код ' + code + ' скопійовано!');
+  };
+
+  window.boLoadCodes = async () => {
+    const el = document.getElementById('bo-codes-list');
+    try {
+      const snap = await get(ref(db,'invite_codes'));
+      const codes = snap.val() || {};
+      const active = Object.entries(codes).filter(([,c])=>!c.used);
+      if (active.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--hint)">Активних кодів немає</div>';
+        return;
+      }
+      el.innerHTML = active.map(([code, c]) => {
+        const hrs = Math.max(0, Math.round((new Date(c.expires_at)-Date.now())/3600000));
+        return `<div class="bo-card" style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:20px;font-weight:500;letter-spacing:4px;color:var(--text);flex:1">${code}</div>
+          <div class="bo-pill">${c.vehicle_type}</div>
+          <div class="bo-pill">${hrs}год</div>
+          <button class="bo-act" onclick="boDeleteCode('${code}')" title="Анулювати">🗑️</button>
+        </div>`;
+      }).join('');
+    } catch(e) {}
+  };
+
+  window.boDeleteCode = async (code) => {
+    await set(ref(db,'invite_codes/'+code+'/used'), true);
+    showToast('🗑️ Код анульовано');
+    boLoadCodes();
+  };
+
+  window.boLoadTariffs = async () => {
+    try {
+      const snap = await get(ref(db,'config/tariffs'));
+      if (!snap.exists()) return;
+      const t = snap.val();
+      ['std','est','bus','cargo','courier'].forEach(type => {
+        if (t[type]) {
+          const el = (id) => document.getElementById('t-'+type+'-'+id);
+          if(el('board')) el('board').value = t[type].board;
+          if(el('km')) el('km').value = t[type].km;
+          if(el('wait')) el('wait').value = t[type].wait;
+        }
+      });
+    } catch(e) {}
+  };
+
+  window.boSaveTariffs = async () => {
+    const tariffs = {};
+    ['std','est','bus','cargo','courier'].forEach(type => {
+      tariffs[type] = {
+        board: parseInt(document.getElementById('t-'+type+'-board').value),
+        km: parseInt(document.getElementById('t-'+type+'-km').value),
+        wait: parseInt(document.getElementById('t-'+type+'-wait').value)
+      };
+    });
+    await set(ref(db,'config/tariffs'), tariffs);
+    window._tariffs = tariffs;
+    showToast('✅ Тарифи збережено в Firebase!');
+  };
+
+  window.boLoadSettings = async () => {
+    try {
+      const snap = await get(ref(db,'config/settings'));
+      if (!snap.exists()) return;
+      const s = snap.val();
+      if(s.trial_days !== undefined) document.getElementById('s-trial').value = s.trial_days;
+      if(s.subscription_price !== undefined) document.getElementById('s-price').value = s.subscription_price;
+      if(s.grace_days !== undefined) document.getElementById('s-grace').value = s.grace_days;
+      if(s.queue_timer_seconds !== undefined) document.getElementById('s-timer').value = s.queue_timer_seconds;
+      if(s.system_message) document.getElementById('s-message').value = s.system_message;
+      if(s.registration_open === false) { document.getElementById('sw-reg').className = 'bo-sw off'; }
+      if(s.courier_announcements === false) { document.getElementById('sw-courier').className = 'bo-sw off'; }
+      if(s.maintenance === true) { document.getElementById('sw-maint').className = 'bo-sw on'; }
+    } catch(e) {}
+  };
+
+  window.boSaveSettings = async () => {
+    const settings = {
+      trial_days: parseInt(document.getElementById('s-trial').value),
+      subscription_price: parseInt(document.getElementById('s-price').value),
+      grace_days: parseInt(document.getElementById('s-grace').value),
+      queue_timer_seconds: parseInt(document.getElementById('s-timer').value)
+    };
+    await set(ref(db,'config/settings'), {...(await get(ref(db,'config/settings'))).val(), ...settings});
+    showToast('✅ Налаштування збережено!');
+  };
+
+  window.boSaveFeatures = async () => {
+    const features = {
+      registration_open: document.getElementById('sw-reg').classList.contains('on'),
+      courier_announcements: document.getElementById('sw-courier').classList.contains('on'),
+      maintenance: document.getElementById('sw-maint').classList.contains('on')
+    };
+    const cur = (await get(ref(db,'config/settings'))).val() || {};
+    await set(ref(db,'config/settings'), {...cur, ...features});
+    showToast('✅ Функції збережено!');
+  };
+
+  window.boSaveMessage = async () => {
+    const msg = document.getElementById('s-message').value;
+    const cur = (await get(ref(db,'config/settings'))).val() || {};
+    await set(ref(db,'config/settings'), {...cur, system_message: msg});
+    showToast('✅ Повідомлення збережено!');
+  };
+
+  window.boStep = (id, delta) => {
+    const el = document.getElementById(id);
+    el.value = Math.max(parseInt(el.min||0), Math.min(parseInt(el.max||9999), parseInt(el.value)+delta));
+  };
+
+  window.boLoadOrders = async () => {
+    const el = document.getElementById('bo-orders-list');
+    try {
+      const snap = await get(ref(db,'orders'));
+      const orders = snap.val() || {};
+      if (Object.keys(orders).length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Замовлень ще немає</div>';
+        return;
+      }
+      const sorted = Object.entries(orders).sort((a,b)=>b[1].created_at?.localeCompare(a[1].created_at||'')||0);
+      el.innerHTML = sorted.slice(0,20).map(([id,o]) => {
+        const statusColor = o.status==='completed'?'g':o.status==='searching'?'w':'a';
+        const time = o.created_at ? new Date(o.created_at).toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit'}) : '';
+        return `<div class="bo-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:11px;color:var(--hint)">#${id.slice(-6)}</span>
+            <span class="bo-status ${statusColor}" style="font-size:10px">${o.status||'?'}</span>
+            <span style="font-size:11px;color:var(--hint);margin-left:auto">${time}</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted)">🚗 ${o.vehicle_type||'?'} · → ${o.to_address||'По місту'}</div>
+        </div>`;
+      }).join('');
+    } catch(e) { el.innerHTML = '<div style="color:var(--red);padding:14px">Помилка: '+e.message+'</div>'; }
+  };
+
+
 </script>
+
+<!-- SCREEN: БЕКОФІС ЛОГІН -->
+<div class="screen" id="screen-bo-login">
+  <div class="bo-login">
+    <div class="bo-login-logo"><span>Novo</span><span>Taxi</span></div>
+    <div class="bo-login-sub">Панель адміністратора</div>
+    <div class="bo-login-card">
+      <div class="bo-field">
+        <label>Пароль адміна</label>
+        <input class="bo-input" type="password" id="boPassword" placeholder="Введіть пароль" onkeydown="if(event.key==='Enter')boLogin()">
+      </div>
+      <button class="btn-primary dark" onclick="boLogin()">🔐 Увійти</button>
+      <button onclick="showScreen('screen-role')" style="width:100%;background:none;border:none;color:var(--hint);font-size:13px;margin-top:12px;cursor:pointer;">← Назад</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: БЕК-ОФІС -->
+<div class="screen" id="screen-backoffice">
+  <div class="bo-header">
+    <div class="bo-logo"><span>Novo</span><span>Taxi</span></div>
+    <div class="bo-admin-badge">Адмін</div>
+  </div>
+  <div class="bo-nav">
+    <button class="bo-tab on" onclick="boNav('dash',this)">Дашборд</button>
+    <button class="bo-tab" onclick="boNav('drivers',this)">Водії</button>
+    <button class="bo-tab" onclick="boNav('codes',this)">Коди</button>
+    <button class="bo-tab" onclick="boNav('tariffs',this)">Тарифи</button>
+    <button class="bo-tab" onclick="boNav('settings',this)">Налаштування</button>
+    <button class="bo-tab" onclick="boNav('orders',this)">Замовлення</button>
+  </div>
+
+  <!-- ДАШБОРД -->
+  <div class="bo-page on" id="bo-dash">
+    <div class="bo-lbl">Сьогодні</div>
+    <div class="bo-stat-grid" id="bo-stats">
+      <div class="bo-stat"><div class="bo-stat-val g" id="bs-online">...</div><div class="bo-stat-lbl">онлайн зараз</div></div>
+      <div class="bo-stat"><div class="bo-stat-val a" id="bs-orders">...</div><div class="bo-stat-lbl">замовлень</div></div>
+      <div class="bo-stat"><div class="bo-stat-val" id="bs-drivers">...</div><div class="bo-stat-lbl">всього водіїв</div></div>
+      <div class="bo-stat"><div class="bo-stat-val g" id="bs-active">...</div><div class="bo-stat-lbl">активних підписок</div></div>
+    </div>
+    <div class="bo-lbl">Firebase</div>
+    <div class="bo-card" style="font-size:13px;color:var(--muted);line-height:1.8">
+      <div>📡 База: <span style="color:#4cd964">підключена</span></div>
+      <div>🔐 Auth: Google + Email/Password</div>
+      <div>📍 Місто: Новоград · радіус 15 км</div>
+      <div id="bo-trial-info">⏳ Пробний: завантаження...</div>
+      <div id="bo-price-info">💰 Підписка: завантаження...</div>
+    </div>
+    <button class="bo-btn" onclick="boRefreshStats()">🔄 Оновити дані</button>
+    <button class="bo-btn" style="background:transparent;color:var(--hint);border:.5px solid var(--border);margin-top:8px" onclick="boLogout()">← Вийти з адмінпанелі</button>
+  </div>
+
+  <!-- ВОДІЇ -->
+  <div class="bo-page" id="bo-drivers">
+    <div class="bo-lbl">Водії з Firebase</div>
+    <div id="bo-drivers-list">
+      <div style="text-align:center;padding:20px;color:var(--hint)">Завантаження...</div>
+    </div>
+    <button class="bo-btn" onclick="boLoadDrivers()">🔄 Оновити список</button>
+  </div>
+
+  <!-- КОДИ -->
+  <div class="bo-page" id="bo-codes">
+    <div class="bo-lbl">Генерація коду водія</div>
+    <div class="bo-card">
+      <div class="bo-field">
+        <label>Тип авто</label>
+        <select class="bo-input" id="bo-code-type">
+          <option value="std">🚗 Стандарт</option>
+          <option value="est">🚙 Універсал</option>
+          <option value="bus">🚐 Бус пасажирський</option>
+          <option value="cargo">🚛 Бус вантажний</option>
+          <option value="courier">📦 Кур'єр</option>
+        </select>
+      </div>
+      <button class="bo-btn" onclick="boGenCode()">✨ Генерувати код</button>
+      <div class="bo-code-result" id="bo-code-result">
+        <div style="font-size:12px;color:var(--hint)">Код активації — одноразовий 48 год</div>
+        <div class="bo-code-val" id="bo-code-val">------</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="bo-code-type-label">Стандарт</div>
+        <button class="bo-copy-btn" onclick="boCopyCode()">📋 Скопіювати</button>
+      </div>
+    </div>
+    <div class="bo-lbl" style="margin-top:4px">Активні коди</div>
+    <div id="bo-codes-list">
+      <div style="text-align:center;padding:20px;color:var(--hint)">Завантаження...</div>
+    </div>
+  </div>
+
+  <!-- ТАРИФИ -->
+  <div class="bo-page" id="bo-tariffs">
+    <div class="bo-lbl">Тарифи · змінюються без оновлення додатку</div>
+    <div class="bo-tariff">
+      <div class="bo-tariff-head">🚗 Стандарт</div>
+      <div class="bo-tariff-grid">
+        <div class="bo-tf"><label>Посадка</label><div class="bo-tf-row"><input type="number" id="t-std-board" value="30"><span>грн</span></div></div>
+        <div class="bo-tf"><label>За км</label><div class="bo-tf-row"><input type="number" id="t-std-km" value="5"><span>грн</span></div></div>
+        <div class="bo-tf"><label>Очікування</label><div class="bo-tf-row"><input type="number" id="t-std-wait" value="1"><span>хв</span></div></div>
+      </div>
+    </div>
+    <div class="bo-tariff">
+      <div class="bo-tariff-head">🚙 Універсал</div>
+      <div class="bo-tariff-grid">
+        <div class="bo-tf"><label>Посадка</label><div class="bo-tf-row"><input type="number" id="t-est-board" value="40"><span>грн</span></div></div>
+        <div class="bo-tf"><label>За км</label><div class="bo-tf-row"><input type="number" id="t-est-km" value="6"><span>грн</span></div></div>
+        <div class="bo-tf"><label>Очікування</label><div class="bo-tf-row"><input type="number" id="t-est-wait" value="1"><span>хв</span></div></div>
+      </div>
+    </div>
+    <div class="bo-tariff">
+      <div class="bo-tariff-head">🚐 Бус пасажирський</div>
+      <div class="bo-tariff-grid">
+        <div class="bo-tf"><label>Посадка</label><div class="bo-tf-row"><input type="number" id="t-bus-board" value="60"><span>грн</span></div></div>
+        <div class="bo-tf"><label>За км</label><div class="bo-tf-row"><input type="number" id="t-bus-km" value="8"><span>грн</span></div></div>
+        <div class="bo-tf"><label>Очікування</label><div class="bo-tf-row"><input type="number" id="t-bus-wait" value="1"><span>хв</span></div></div>
+      </div>
+    </div>
+    <div class="bo-tariff">
+      <div class="bo-tariff-head">🚛 Бус вантажний</div>
+      <div class="bo-tariff-grid">
+        <div class="bo-tf"><label>Посадка</label><div class="bo-tf-row"><input type="number" id="t-cargo-board" value="80"><span>грн</span></div></div>
+        <div class="bo-tf"><label>За км</label><div class="bo-tf-row"><input type="number" id="t-cargo-km" value="10"><span>грн</span></div></div>
+        <div class="bo-tf"><label>Очікування</label><div class="bo-tf-row"><input type="number" id="t-cargo-wait" value="2"><span>хв</span></div></div>
+      </div>
+    </div>
+    <div class="bo-tariff">
+      <div class="bo-tariff-head">📦 Кур'єр</div>
+      <div class="bo-tariff-grid">
+        <div class="bo-tf"><label>Посадка</label><div class="bo-tf-row"><input type="number" id="t-courier-board" value="30"><span>грн</span></div></div>
+        <div class="bo-tf"><label>За км</label><div class="bo-tf-row"><input type="number" id="t-courier-km" value="5"><span>грн</span></div></div>
+        <div class="bo-tf"><label>Очікування</label><div class="bo-tf-row"><input type="number" id="t-courier-wait" value="1"><span>хв</span></div></div>
+      </div>
+    </div>
+    <button class="bo-btn" onclick="boSaveTariffs()">☁️ Зберегти в Firebase</button>
+  </div>
+
+  <!-- НАЛАШТУВАННЯ -->
+  <div class="bo-page" id="bo-settings">
+    <div class="bo-lbl">Пробний період і підписка</div>
+    <div class="bo-card">
+      <div class="bo-stepper-row">
+        <span class="bo-stepper-lbl">Пробний період</span>
+        <div class="bo-stepper">
+          <button onclick="boStep('s-trial',-1)">−</button>
+          <input type="number" id="s-trial" value="7" min="0" max="30">
+          <button onclick="boStep('s-trial',1)">+</button>
+        </div>
+        <span style="font-size:13px;color:var(--muted)">днів</span>
+      </div>
+      <div class="bo-stepper-row">
+        <span class="bo-stepper-lbl">Ціна підписки</span>
+        <div class="bo-stepper">
+          <button onclick="boStep('s-price',-50)">−</button>
+          <input type="number" id="s-price" value="300" min="0" step="50">
+          <button onclick="boStep('s-price',50)">+</button>
+        </div>
+        <span style="font-size:13px;color:var(--muted)">грн/міс</span>
+      </div>
+      <div class="bo-stepper-row">
+        <span class="bo-stepper-lbl">Відстрочка</span>
+        <div class="bo-stepper">
+          <button onclick="boStep('s-grace',-1)">−</button>
+          <input type="number" id="s-grace" value="3" min="0" max="7">
+          <button onclick="boStep('s-grace',1)">+</button>
+        </div>
+        <span style="font-size:13px;color:var(--muted)">днів</span>
+      </div>
+      <div class="bo-stepper-row">
+        <span class="bo-stepper-lbl">Таймер черги</span>
+        <div class="bo-stepper">
+          <button onclick="boStep('s-timer',-5)">−</button>
+          <input type="number" id="s-timer" value="30" min="15" max="60" step="5">
+          <button onclick="boStep('s-timer',5)">+</button>
+        </div>
+        <span style="font-size:13px;color:var(--muted)">сек</span>
+      </div>
+      <button class="bo-btn" onclick="boSaveSettings()">☁️ Зберегти в Firebase</button>
+    </div>
+    <div class="bo-lbl">Функції</div>
+    <div class="bo-card">
+      <div class="bo-toggle-row">
+        <div class="bo-toggle-info"><p>Реєстрація водіїв</p><p>Вимкни щоб не брати нових</p></div>
+        <button class="bo-sw on" id="sw-reg" onclick="this.classList.toggle('on');this.classList.toggle('off')"></button>
+      </div>
+      <div class="bo-toggle-row">
+        <div class="bo-toggle-info"><p>Кур'єрські оголошення</p><p>Функція оголошень для клієнтів</p></div>
+        <button class="bo-sw on" id="sw-courier" onclick="this.classList.toggle('on');this.classList.toggle('off')"></button>
+      </div>
+      <div class="bo-toggle-row">
+        <div class="bo-toggle-info"><p>Технічне обслуговування</p><p>Показує повідомлення всім</p></div>
+        <button class="bo-sw off" id="sw-maint" onclick="this.classList.toggle('on');this.classList.toggle('off')"></button>
+      </div>
+      <button class="bo-btn" style="margin-top:12px" onclick="boSaveFeatures()">☁️ Зберегти функції</button>
+    </div>
+    <div class="bo-lbl">Системне повідомлення</div>
+    <div class="bo-card">
+      <textarea class="bo-input" id="s-message" placeholder="Технічні роботи з 22:00..." style="min-height:80px;resize:none"></textarea>
+      <button class="bo-btn" onclick="boSaveMessage()">☁️ Зберегти повідомлення</button>
+    </div>
+  </div>
+
+  <!-- ЗАМОВЛЕННЯ -->
+  <div class="bo-page" id="bo-orders">
+    <div class="bo-lbl">Останні замовлення</div>
+    <div id="bo-orders-list">
+      <div style="text-align:center;padding:20px;color:var(--hint)">Завантаження...</div>
+    </div>
+    <button class="bo-btn" onclick="boLoadOrders()">🔄 Оновити</button>
+  </div>
+
+</div>
+
 </body>
 </html>
