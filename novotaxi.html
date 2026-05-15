@@ -1549,6 +1549,64 @@ function initMap() {
     }
   }
 
+
+  // ===== ПРОФІЛЬ КЛІЄНТА =====
+  var AVATARS = ['😊','😎','🤩','🥳','🤗','😄','🦁','🐯','🐻','🦊','🐼','🐨','🦋','🌟','⚡','🔥','🌈','💫','🎯','🚀'];
+
+  window.showProfileData = function() {
+    var user = auth.currentUser;
+    if (!user) return;
+    // Ініціалізуємо emoji grid
+    var grid = document.getElementById('prof-emoji-grid');
+    if (grid && !grid.innerHTML) {
+      grid.innerHTML = AVATARS.map(function(e) {
+        return '<span onclick="selectAvatar(\'' + e + '\')" style="font-size:28px;cursor:pointer;padding:4px;border-radius:8px;display:inline-block" class="ava-opt">' + e + '</span>';
+      }).join('');
+    }
+    // Завантажуємо дані з Firebase
+    get(ref(db, 'clients/' + user.uid)).then(function(snap) {
+      var d = snap.val() || {};
+      var avatar = d.avatar || '😊';
+      var nick = d.nick || d.name || user.displayName || '';
+      var phone = d.phone || localStorage.getItem('nt_phone') || '—';
+      var trips = d.trips_count || 0;
+      document.getElementById('prof-avatar').textContent = avatar;
+      document.getElementById('prof-nick').value = nick;
+      document.getElementById('prof-phone').textContent = phone;
+      document.getElementById('prof-email').textContent = user.email || '—';
+      document.getElementById('prof-trips-count').textContent = trips + ' поїздок';
+      window._profAvatar = avatar;
+    }).catch(function() {});
+  };
+
+  window.selectAvatar = function(emoji) {
+    window._profAvatar = emoji;
+    document.getElementById('prof-avatar').textContent = emoji;
+    document.getElementById('prof-emoji-picker').style.display = 'none';
+  };
+
+  window.updateNickPreview = function() {};
+
+  window.saveProfile = async function() {
+    var user = auth.currentUser;
+    if (!user) return;
+    var nick = document.getElementById('prof-nick').value.trim();
+    var avatar = window._profAvatar || '😊';
+    if (!nick) { showToast('Введіть нікнейм'); return; }
+    try {
+      var snap = await get(ref(db, 'clients/' + user.uid));
+      var existing = snap.val() || {};
+      await set(ref(db, 'clients/' + user.uid), Object.assign({}, existing, {
+        nick: nick,
+        avatar: avatar,
+        name: nick
+      }));
+      showToast('✅ Профіль збережено!');
+      showScreen('screen-main');
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
   // signOutUser визначається в module блоці нижче
 
 
@@ -1904,33 +1962,61 @@ function initMap() {
   <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px">
     <button onclick="showScreen('screen-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0">‹</button>
     <span style="font-size:17px;font-weight:500;color:#fff">Профіль</span>
+    <button onclick="saveProfile()" style="margin-left:auto;background:none;border:none;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer">Зберегти</button>
   </div>
   <div style="padding:20px 16px">
-    <!-- аватар -->
-    <div style="text-align:center;padding:16px 0 24px">
-      <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:500;color:var(--black);margin:0 auto 12px" id="prof-avatar">👤</div>
-      <div style="font-size:19px;font-weight:500;color:var(--text)" id="prof-name">...</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:4px" id="prof-email">...</div>
+
+    <!-- Аватар — клік щоб змінити -->
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="position:relative;display:inline-block;cursor:pointer" onclick="document.getElementById('prof-emoji-picker').style.display=document.getElementById('prof-emoji-picker').style.display==='none'?'block':'none'">
+        <div id="prof-avatar" style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--black);margin:0 auto;border:3px solid var(--accent2)">😊</div>
+        <div style="position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:var(--black);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px">✏️</div>
+      </div>
+      <div style="font-size:12px;color:var(--hint);margin-top:8px">Натисни щоб змінити</div>
+
+      <!-- Вибір емодзі -->
+      <div id="prof-emoji-picker" style="display:none;background:var(--surface);border-radius:14px;padding:12px;margin-top:10px;border:.5px solid var(--border)">
+        <div style="font-size:11px;color:var(--hint);margin-bottom:8px;text-align:left">Вибери аватар</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center" id="prof-emoji-grid"></div>
+      </div>
     </div>
-    <!-- дані -->
-    <div style="background:var(--surface);border-radius:12px;overflow:hidden;margin-bottom:14px">
+
+    <!-- Нікнейм -->
+    <div style="background:var(--surface);border-radius:12px;overflow:hidden;margin-bottom:12px">
+      <div style="padding:14px 16px;border-bottom:.5px solid var(--border)">
+        <div style="font-size:12px;color:var(--hint);margin-bottom:6px">Нікнейм</div>
+        <input id="prof-nick" type="text" maxlength="20" placeholder="Введіть нікнейм..."
+          style="width:100%;background:transparent;border:none;font-size:16px;font-weight:500;color:var(--text);outline:none"
+          oninput="updateNickPreview()">
+        <div style="font-size:11px;color:var(--hint);margin-top:4px">Водій бачить цей нік</div>
+      </div>
       <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:.5px solid var(--border)">
         <span style="font-size:18px">📱</span>
         <div>
           <div style="font-size:12px;color:var(--hint)">Телефон</div>
           <div style="font-size:14px;font-weight:500;color:var(--text);margin-top:2px" id="prof-phone">...</div>
         </div>
-        <span style="margin-left:auto;font-size:12px;color:var(--hint);display:flex;align-items:center;gap:4px">🔒 зафіксовано</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--hint);display:flex;align-items:center;gap:3px">🔒 зафіксовано</span>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
-        <span style="font-size:18px">🚕</span>
+        <span style="font-size:18px" id="prof-email-ico">✉️</span>
         <div>
-          <div style="font-size:12px;color:var(--hint)">Статус</div>
-          <div style="font-size:14px;font-weight:500;color:#4cd964;margin-top:2px">Активний клієнт</div>
+          <div style="font-size:12px;color:var(--hint)">Email</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px" id="prof-email">...</div>
         </div>
       </div>
     </div>
-    <!-- кнопка виходу -->
+
+    <!-- Статус -->
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px">
+      <span style="font-size:18px">🚕</span>
+      <div>
+        <div style="font-size:12px;color:var(--hint)">Статус</div>
+        <div style="font-size:14px;font-weight:500;color:#4cd964;margin-top:2px">Активний клієнт</div>
+      </div>
+      <div style="margin-left:auto;font-size:12px;color:var(--hint)" id="prof-trips-count">0 поїздок</div>
+    </div>
+
     <button onclick="signOutUser()" style="width:100%;background:transparent;border:1.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:10px">
       🚪 Вийти з акаунту
     </button>
