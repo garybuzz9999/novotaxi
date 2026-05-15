@@ -879,9 +879,17 @@ function initMap() {
     const dest = document.getElementById('destInput').value.trim();
     const type = window._selType || 'std';
     const orderId = 'ord_' + Date.now();
+    // Телефон читаємо з Firebase — він зафіксований при реєстрації
+    var clientSnap = await get(ref(db, 'clients/' + user.uid));
+    var clientData = clientSnap.val() || {};
+    var clientPhone = clientData.phone || localStorage.getItem('nt_phone') || '';
+    var clientName = clientData.name || user.displayName || 'Клієнт';
     await set(ref(db, 'orders/' + orderId), {
       client_id: user.uid,
+      client_name: clientName,
+      client_phone: clientPhone,
       vehicle_type: type,
+      from_address: document.getElementById('gpsPill') ? (document.getElementById('gpsText') ? document.getElementById('gpsText').textContent : '') : '',
       to_address: dest || 'По місту',
       status: 'searching',
       created_at: new Date().toISOString()
@@ -890,6 +898,152 @@ function initMap() {
   };
 
 
+
+  // ===== ПОЇЗДКА ВОДІЯ =====
+  var _rideMeterInt = null;
+  var _rideSec = 0;
+  var _rideKm = 0;
+  var _rideBoard = 30;
+  var _ridePerKm = 5;
+  var _rideAddr = '';
+  var _rideOrderId = null;
+  var _rideClientName = 'Клієнт';
+  var _rideClientPhone = '';
+
+  window.startRideScreen = function(orderId, orderData, tariff) {
+    _rideOrderId = orderId;
+    _rideBoard = (tariff && tariff.board) || 30;
+    _ridePerKm = (tariff && tariff.km) || 5;
+    _rideAddr = '';
+    _rideSec = 0;
+    _rideKm = 0;
+    _rideClientName = orderData.client_name || 'Клієнт';
+    _rideClientPhone = orderData.client_phone || '';
+
+    var ava = _rideClientName.substring(0,2).toUpperCase();
+    document.getElementById('ride-client-ava').textContent = ava;
+    document.getElementById('ride-client-name').textContent = _rideClientName + ' сів в авто';
+    document.getElementById('ride-meter-ava').textContent = ava;
+    document.getElementById('ride-meter-name').textContent = _rideClientName;
+    document.getElementById('ride-phone-btn').href = 'tel:' + _rideClientPhone;
+    document.getElementById('ride-board-val').textContent = _rideBoard + ' грн';
+
+    // Скидаємо фази
+    document.getElementById('ride-phase1').style.display = 'block';
+    document.getElementById('ride-phase2').style.display = 'none';
+    document.getElementById('ride-phase3').style.display = 'none';
+    document.getElementById('ride-header-txt').textContent = 'Пасажир сів';
+    document.getElementById('ride-addr-input').value = '';
+    document.getElementById('ride-addr-sugg').style.display = 'none';
+    document.getElementById('ride-addr-chosen').style.display = 'none';
+    document.getElementById('ride-start-btn-txt').textContent = 'Старт — вмикаю лічильник';
+
+    showScreen('screen-ride');
+  };
+
+  window.rideAddrSearch = function(val) {
+    var sugg = document.getElementById('ride-addr-sugg');
+    if (val.length < 2) { sugg.style.display = 'none'; return; }
+    // Nominatim пошук
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(val) + '&format=json&limit=4&accept-language=uk')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.length) { sugg.style.display = 'none'; return; }
+        sugg.style.display = 'block';
+        sugg.innerHTML = data.map(function(d) {
+          var name = d.display_name.split(',').slice(0,2).join(', ');
+          return '<div onclick="ridePickAddr(\'' + name.replace(/'/g,"\'") + '\')" style="padding:10px 12px;background:var(--surface);border-bottom:.5px solid var(--border);font-size:13px;color:var(--text);cursor:pointer">' + name + '</div>';
+        }).join('');
+      }).catch(function() {});
+  };
+
+  window.ridePickAddr = function(addr) {
+    _rideAddr = addr;
+    document.getElementById('ride-addr-input').value = addr;
+    document.getElementById('ride-addr-sugg').style.display = 'none';
+    document.getElementById('ride-addr-chosen').style.display = 'flex';
+    document.getElementById('ride-addr-chosen-val').textContent = addr;
+    document.getElementById('ride-start-btn-txt').textContent = 'Старт → ' + addr;
+    document.getElementById('ride-meter-dest').textContent = addr;
+    document.getElementById('ride-meter-dest-small').textContent = addr;
+    document.getElementById('ride-finish-dest').textContent = addr;
+  };
+
+  window.rideClearAddr = function() {
+    _rideAddr = '';
+    document.getElementById('ride-addr-input').value = '';
+    document.getElementById('ride-addr-chosen').style.display = 'none';
+    document.getElementById('ride-start-btn-txt').textContent = 'Старт — вмикаю лічильник';
+  };
+
+  window.rideOpenMaps = function() {
+    var dest = _rideAddr ? encodeURIComponent(_rideAddr) : '';
+    var url = dest ? 'https://www.google.com/maps/dir/?api=1&destination=' + dest : 'https://maps.google.com';
+    window.open(url, '_blank');
+  };
+
+  window.rideStart = function() {
+    document.getElementById('ride-phase1').style.display = 'none';
+    document.getElementById('ride-phase2').style.display = 'block';
+    document.getElementById('ride-header-txt').textContent = 'Поїздка';
+    _rideSec = 0; _rideKm = 0;
+    clearInterval(_rideMeterInt);
+    _rideMeterInt = setInterval(function() {
+      _rideSec++;
+      _rideKm += 0.01 + Math.random() * 0.008; // симуляція GPS
+      var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+      var m = Math.floor(_rideSec / 60);
+      var s = _rideSec % 60;
+      var spd = Math.round(25 + Math.random() * 40);
+      document.getElementById('ride-price').textContent = total + ' грн';
+      document.getElementById('ride-km').textContent = _rideKm.toFixed(1);
+      document.getElementById('ride-time').textContent = m + ':' + String(s).padStart(2,'0');
+      document.getElementById('ride-spd').textContent = spd;
+      document.getElementById('ride-km-lbl').textContent = _rideKm.toFixed(1) + ' км × ' + _ridePerKm + ' грн';
+      document.getElementById('ride-km-val').textContent = Math.round(_rideKm * _ridePerKm) + ' грн';
+      document.getElementById('ride-stop-txt').textContent = 'Приїхали — ' + total + ' грн';
+    }, 1000);
+  };
+
+  window.rideStop = function() {
+    clearInterval(_rideMeterInt);
+    var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+    var kmCost = Math.round(_rideKm * _ridePerKm);
+    document.getElementById('ride-phase2').style.display = 'none';
+    document.getElementById('ride-phase3').style.display = 'block';
+    document.getElementById('ride-header-txt').textContent = 'Завершення';
+    document.getElementById('ride-finish-price').textContent = total + ' грн';
+    document.getElementById('ride-fin-board').textContent = _rideBoard + ' грн';
+    document.getElementById('ride-fin-km-lbl').textContent = _rideKm.toFixed(1) + ' км × ' + _ridePerKm + ' грн';
+    document.getElementById('ride-fin-km-val').textContent = kmCost + ' грн';
+    document.getElementById('ride-fin-total').textContent = total + ' грн';
+    document.getElementById('ride-finish-dest').textContent = _rideAddr || 'По місту';
+    document.getElementById('ride-confirm-txt').textContent = 'Отримав ' + total + ' грн — закрити поїздку';
+  };
+
+  window.rideConfirm = async function() {
+    var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+    var btn = document.getElementById('ride-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '✅ Записано!';
+    // Зберігаємо в Firebase
+    try {
+      if (_rideOrderId) {
+        await set(ref(db, 'orders/' + _rideOrderId + '/status'), 'completed');
+        await set(ref(db, 'orders/' + _rideOrderId + '/total'), total);
+        await set(ref(db, 'orders/' + _rideOrderId + '/km'), parseFloat(_rideKm.toFixed(1)));
+        await set(ref(db, 'orders/' + _rideOrderId + '/to_address'), _rideAddr || 'По місту');
+      }
+    } catch(e) {}
+    showToast('✅ Поїздку завершено і записано!');
+    setTimeout(function() {
+      btn.disabled = false;
+      btn.innerHTML = '✅ <span id="ride-confirm-txt">Отримав — закрити поїздку</span>';
+      showScreen('screen-driver-main');
+      if (window.initDriverScreen) window.initDriverScreen();
+      _rideOrderId = null;
+    }, 1200);
+  };
   // ===== РЕЄСТРАЦІЯ ВОДІЯ =====
   var _drvSelSvcs = new Set();
 
@@ -1004,6 +1158,21 @@ function initMap() {
     } catch(e) { console.error('initDriver:', e); }
   };
 
+  window.openMapsToClient = function() {
+    var fromAddr = (window._lastOrderData && window._lastOrderData.from_address) || '';
+    var url = fromAddr
+      ? 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(fromAddr) + '&travelmode=driving'
+      : 'https://maps.google.com';
+    window.open(url, '_blank');
+  };
+
+  window.passengerIn = function() {
+    var orderId = window._lastOrderId;
+    var orderData = window._lastOrderData || {};
+    var tariff = (window._tariffs && window._tariffs[orderData.vehicle_type]) || {board:30, km:5};
+    window.startRideScreen(orderId, orderData, tariff);
+  };
+
   window.drvNav = function(id, btn) {
     var pages = ['main','announce','history','profile'];
     pages.forEach(function(p) {
@@ -1056,6 +1225,8 @@ function initMap() {
 
   function drvShowOrder(orderId, order) {
     _drvCurrentOrder = orderId;
+    window._lastOrderId = orderId;
+    window._lastOrderData = order;
     document.getElementById('drv-waiting').style.display = 'none';
     document.getElementById('drv-order-card').style.display = 'block';
     var names = {std:'Стандарт', est:'Універсал', bus:'Бус', cargo:'Вантажний', courier:"Кур'єр"};
@@ -1063,6 +1234,20 @@ function initMap() {
     document.getElementById('drv-from').textContent = order.from_address || 'Адреса подачі';
     document.getElementById('drv-to').textContent = order.to_address || 'По місту';
     document.getElementById('drv-dist').textContent = (Math.random()*3+0.5).toFixed(1) + ' км';
+    // Телефон клієнта — клікабельний
+    var clientPhone = order.client_phone || '';
+    var clientName = order.client_name || 'Клієнт';
+    var phoneLink = document.getElementById('drv-phone-link');
+    var phoneTxt = document.getElementById('drv-phone-txt');
+    if (phoneLink && phoneTxt) {
+      phoneLink.href = clientPhone ? 'tel:' + clientPhone : 'tel:';
+      phoneTxt.textContent = clientPhone || 'Телефон не вказано';
+      phoneLink.style.color = clientPhone ? '#4da3ff' : 'var(--hint)';
+    }
+    var cavaEl = document.getElementById('drv-client-ava');
+    var cnameEl = document.getElementById('drv-client-name');
+    if (cavaEl) cavaEl.textContent = clientName.substring(0,2).toUpperCase();
+    if (cnameEl) cnameEl.textContent = clientName;
     var t = 30;
     clearInterval(_drvTimer);
     document.getElementById('drv-timer').textContent = '0:30';
@@ -1080,14 +1265,35 @@ function initMap() {
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/status'), 'accepted');
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_id'), window._currentUid);
     } catch(e) {}
+    showToast('✅ Прийнято! Прокладаємо маршрут...');
+    _drvCurrentOrder = null;
     document.getElementById('drv-order-card').style.display = 'none';
     document.getElementById('drv-waiting').style.display = 'block';
-    document.getElementById('drv-waiting').innerHTML = '<div style="font-size:36px;margin-bottom:12px">✅</div><div style="font-size:15px;font-weight:500;color:var(--text)">Замовлення прийнято!</div><div style="font-size:13px;color:var(--muted);margin-top:8px">Їдьте до клієнта</div>';
-    showToast('✅ Замовлення прийнято!');
-    setTimeout(function() {
-      _drvCurrentOrder = null;
-      document.getElementById('drv-waiting').innerHTML = '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
-    }, 5000);
+
+    // Адреса клієнта для маршруту
+    var fromAddr = (window._lastOrderData && window._lastOrderData.from_address) || '';
+    var mapsUrl = fromAddr
+      ? 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(fromAddr) + '&travelmode=driving'
+      : 'https://maps.google.com';
+
+    // Відкриваємо Google Maps одразу
+    window.open(mapsUrl, '_blank');
+
+    // Екран очікування з кнопкою "Пасажир сів"
+    var clientPhone2 = (window._lastOrderData && window._lastOrderData.client_phone) || '';
+    var clientName2 = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
+    var phoneHtml = clientPhone2
+      ? '<a href="tel:' + clientPhone2 + '" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--black);padding:10px 20px;border-radius:20px;text-decoration:none;font-size:15px;font-weight:500;margin-top:10px">📞 Зателефонувати ' + clientName2 + '</a>'
+      : '';
+    document.getElementById('drv-waiting').innerHTML =
+      '<div style="font-size:36px;margin-bottom:10px">🚗</div>' +
+      '<div style="font-size:15px;font-weight:500;color:var(--text)">Їдьте до клієнта</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-top:6px">' + (fromAddr || 'Адреса подачі') + '</div>' +
+      phoneHtml +
+      '<div style="margin-top:8px"><button onclick="openMapsToClient()" style="background:var(--surface);border:.5px solid var(--border);color:var(--muted);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer">🗺️ Maps ще раз</button></div>' +
+      '<div style="margin-top:16px;padding-top:16px;border-top:.5px solid var(--border)">' +
+      '<button onclick="passengerIn()" style="background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer">🧑 Пасажир сів</button>' +
+      '</div>';
   };
 
   window.drvDecline = function() {
@@ -1669,6 +1875,180 @@ function initMap() {
 
 
 
+
+<!-- SCREEN: ПОЇЗДКА (пасажир сів) -->
+<div class="screen" id="screen-ride">
+  <div style="background:var(--black);padding:11px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:16px;font-weight:500"><span style="color:#fff">Novo</span><span style="color:var(--accent)">Taxi</span></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6)" id="ride-header-txt">Пасажир сів</div>
+  </div>
+
+  <!-- ФАЗА 1: пасажир сів, адреса -->
+  <div id="ride-phase1" style="padding:16px">
+    <!-- Картка пасажира -->
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(76,217,100,.1);border:.5px solid rgba(76,217,100,.4);border-radius:12px;margin-bottom:16px">
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500;color:var(--black);flex-shrink:0" id="ride-client-ava">МК</div>
+      <div>
+        <div style="font-size:15px;font-weight:500;color:#4cd964" id="ride-client-name">Клієнт сів в авто</div>
+        <div style="font-size:12px;color:#4cd964;opacity:.8;margin-top:2px">✅ Підтверджено</div>
+      </div>
+      <a id="ride-phone-btn" href="tel:" style="margin-left:auto;display:flex;align-items:center;gap:5px;background:rgba(76,217,100,.2);color:#4cd964;padding:7px 12px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:500;flex-shrink:0">
+        📞 Дзвонити
+      </a>
+    </div>
+
+    <!-- Адреса -->
+    <div style="font-size:11px;font-weight:500;color:var(--hint);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Куди їдемо?</div>
+
+    <!-- Пошук адреси (необов'язково) -->
+    <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <span>Знайти адресу</span>
+        <span style="font-size:11px;color:var(--hint);background:var(--surface2);padding:2px 8px;border-radius:20px">необов'язково</span>
+      </div>
+      <div style="position:relative">
+        <input type="text" id="ride-addr-input" placeholder="Введіть адресу або назву..."
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 36px 10px 12px;font-size:14px;color:var(--text);outline:none"
+          oninput="rideAddrSearch(this.value)">
+        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--hint)">🔍</span>
+      </div>
+      <div id="ride-addr-sugg" style="display:none;border:.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:6px"></div>
+      <div id="ride-addr-chosen" style="display:none;align-items:center;gap:8px;padding:9px 12px;background:rgba(232,184,0,.06);border:1.5px solid var(--accent2);border-radius:10px;margin-top:6px">
+        <span style="font-size:16px;color:var(--accent2)">🗺️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--text);flex:1" id="ride-addr-chosen-val">—</span>
+        <button onclick="rideClearAddr()" style="background:none;border:none;color:var(--hint);font-size:12px;cursor:pointer">Змінити</button>
+      </div>
+    </div>
+
+    <!-- Google Maps -->
+    <button id="ride-maps-btn" onclick="rideOpenMaps()"
+      style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer;margin-bottom:14px">
+      <span style="font-size:16px">🗺️</span> Відкрити Google Maps
+    </button>
+
+    <!-- НАГАДУВАННЯ -->
+    <div style="background:var(--accent);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">⚠️</div>
+      <div>
+        <div style="font-size:15px;font-weight:500;color:var(--black)">Не забудь запустити лічильник!</div>
+        <div style="font-size:12px;color:rgba(0,0,0,.6);margin-top:3px">Натисни Старт коли рушаєш</div>
+      </div>
+    </div>
+
+    <!-- КНОПКА СТАРТ — завжди активна -->
+    <button onclick="rideStart()"
+      style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+      <span style="font-size:22px">▶️</span>
+      <span id="ride-start-btn-txt">Старт — вмикаю лічильник</span>
+    </button>
+  </div>
+
+  <!-- ФАЗА 2: лічильник -->
+  <div id="ride-phase2" style="display:none;background:var(--black);min-height:calc(100vh - 44px)">
+    <!-- Пасажир + Maps -->
+    <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;margin:12px 16px 0">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--black);flex-shrink:0" id="ride-meter-ava">МК</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:#fff" id="ride-meter-name">Клієнт</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;display:flex;align-items:center;gap:4px">🗺️ <span id="ride-meter-dest">По місту</span></div>
+      </div>
+      <button onclick="rideOpenMaps()" style="margin-left:auto;background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.7);cursor:pointer;flex-shrink:0">
+        🗺️ Maps
+      </button>
+    </div>
+
+    <!-- Індикатор -->
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:gps-blink 1s infinite;flex-shrink:0"></div>
+      <span style="font-size:12px;color:rgba(255,255,255,.5)">Лічильник працює</span>
+      <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:500;margin-left:auto" id="ride-meter-dest-small">По місту</span>
+    </div>
+
+    <!-- Сума велика -->
+    <div style="text-align:center;padding:10px 0 18px">
+      <div style="font-size:56px;font-weight:500;color:var(--accent);line-height:1" id="ride-price">30 грн</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:6px">GPS · оновлюється автоматично</div>
+    </div>
+
+    <!-- Статистика -->
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 16px;margin-bottom:16px">
+      <div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px 6px;text-align:center">
+        <div style="font-size:20px;font-weight:500;color:#fff" id="ride-km">0.0</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">км</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px 6px;text-align:center">
+        <div style="font-size:20px;font-weight:500;color:#fff" id="ride-time">0:00</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">час</div>
+      </div>
+      <div style="background:rgba(255,255,255,.06);border-radius:12px;padding:10px 6px;text-align:center">
+        <div style="font-size:20px;font-weight:500;color:#fff" id="ride-spd">0</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">км/год</div>
+      </div>
+    </div>
+
+    <!-- Деталі тарифу -->
+    <div style="border-top:.5px solid rgba(255,255,255,.08);padding:10px 16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+        <span style="color:rgba(255,255,255,.35)">Посадка</span><span style="color:rgba(255,255,255,.7);font-weight:500" id="ride-board-val">30 грн</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+        <span style="color:rgba(255,255,255,.35)" id="ride-km-lbl">0.0 км × 5 грн</span><span style="color:rgba(255,255,255,.7);font-weight:500" id="ride-km-val">0 грн</span>
+      </div>
+    </div>
+
+    <!-- Кнопка завершення -->
+    <div style="padding:0 16px 16px">
+      <button onclick="rideStop()"
+        style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        🏁 <span id="ride-stop-txt">Приїхали — зупинити лічильник</span>
+      </button>
+      <div style="font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:8px">🛰️ GPS · кожні 3 сек</div>
+    </div>
+  </div>
+
+  <!-- ФАЗА 3: завершення, отримати гроші -->
+  <div id="ride-phase3" style="display:none;background:var(--black);min-height:calc(100vh - 44px);padding:20px 16px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:70px;height:70px;border-radius:50%;background:rgba(76,217,100,.12);border:2px solid #4cd964;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px">🏁</div>
+      <div style="font-size:22px;font-weight:500;color:#fff">Приїхали!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-top:4px" id="ride-finish-dest">—</div>
+    </div>
+    <!-- Сума -->
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:6px">Сума поїздки</div>
+      <div style="font-size:56px;font-weight:500;color:var(--accent);line-height:1" id="ride-finish-price">30 грн</div>
+    </div>
+    <!-- Деталі -->
+    <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:.5px solid rgba(255,255,255,.08)">
+        <span style="color:rgba(255,255,255,.4)">Посадка</span><span style="color:rgba(255,255,255,.8);font-weight:500" id="ride-fin-board">30 грн</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:.5px solid rgba(255,255,255,.08)">
+        <span style="color:rgba(255,255,255,.4)" id="ride-fin-km-lbl">0 км × 5 грн</span><span style="color:rgba(255,255,255,.8);font-weight:500" id="ride-fin-km-val">0 грн</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:500;padding-top:10px;margin-top:4px">
+        <span style="color:rgba(255,255,255,.6)">Разом</span><span style="color:var(--accent)" id="ride-fin-total">30 грн</span>
+      </div>
+    </div>
+    <!-- Попередження -->
+    <div style="background:rgba(245,200,66,.1);border:.5px solid rgba(245,200,66,.3);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;gap:10px">
+      <span style="font-size:20px;flex-shrink:0">💵</span>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--accent)">Отримайте готівку</div>
+        <div style="font-size:12px;color:rgba(245,200,66,.7);margin-top:3px;line-height:1.5">Натисніть тільки після того як отримали гроші від пасажира</div>
+      </div>
+    </div>
+    <!-- Підтвердження -->
+    <button onclick="rideConfirm()" id="ride-confirm-btn"
+      style="width:100%;background:#4cd964;color:#000;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+      ✅ <span id="ride-confirm-txt">Отримав — закрити поїздку</span>
+    </button>
+    <button onclick="showToast('Зверніться до адміністратора')"
+      style="width:100%;background:transparent;border:.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:12px;font-size:13px;cursor:pointer">
+      Є проблема з оплатою
+    </button>
+  </div>
+</div>
 <!-- SCREEN: РЕЄСТРАЦІЯ ВОДІЯ -->
 <div class="screen" id="screen-driver-reg">
   <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px">
