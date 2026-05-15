@@ -560,7 +560,7 @@
       <span class="nav-icon">📢</span>
       <span class="nav-label">Оголошення</span>
     </button>
-    <button class="nav-btn" onclick="showToast('Історія — скоро')">
+    <button class="nav-btn" onclick="openHistory()">
       <span class="nav-icon">🕐</span>
       <span class="nav-label">Історія</span>
     </button>
@@ -921,6 +921,11 @@ function initMap() {
     if (window.showProfileData) window.showProfileData();
   }
 
+  function openHistory() {
+    showScreen('screen-history');
+    if (window.loadHistory) window.loadHistory();
+  }
+
   function openAnnouncements() {
     // Перевіряємо кількість поїздок
     if (window._get && window._ref && window._db) {
@@ -942,6 +947,50 @@ function initMap() {
 
   // signOutUser визначається в module блоці нижче
 
+
+  // Завантажити історію поїздок
+  window.loadHistory = async () => {
+    const uid = window._currentUid;
+    const el = document.getElementById('history-body');
+    if (!uid || !window._get) return;
+    try {
+      const snap = await window._get(window._ref(window._db, 'orders'));
+      const orders = snap.val() || {};
+      // фільтруємо тільки поїздки цього клієнта зі статусом completed
+      const myOrders = Object.entries(orders)
+        .filter(([,o]) => o.client_id === uid && o.status === 'completed')
+        .sort((a,b) => (b[1].created_at||'').localeCompare(a[1].created_at||''));
+
+      if (myOrders.length === 0) {
+        el.innerHTML = `<div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:14px">🚕</div>
+          <div style="font-size:17px;font-weight:500;color:var(--text);margin-bottom:8px">У вас ще немає поїздок</div>
+          <div style="font-size:14px;color:var(--muted);line-height:1.6">З'являться поїздки —<br>з'явиться історія</div>
+        </div>`;
+        return;
+      }
+
+      const names = {std:'Стандарт',est:'Універсал',bus:'Бус',cargo:'Вантажний',courier:"Кур'єр"};
+      el.innerHTML = myOrders.map(([id, o]) => {
+        const time = o.created_at ? new Date(o.created_at).toLocaleString('uk',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return `<div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:10px;border:.5px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:500;color:var(--text)">${names[o.vehicle_type]||o.vehicle_type||'Таксі'}</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--hint)">${time}</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px">
+            <span>📍</span><span>${o.from_address||'—'}</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:4px">
+            <span>🏁</span><span>${o.to_address||'По місту'}</span>
+          </div>
+          ${o.total ? `<div style="font-size:15px;font-weight:500;color:var(--accent2);margin-top:8px">${o.total} грн</div>` : ''}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Помилка завантаження</div>';
+    }
+  };
 
   // Надіслати оголошення
   window.sendAnnouncement = async () => {
@@ -1261,6 +1310,22 @@ function initMap() {
   </div>
 </div>
 
+
+
+<!-- SCREEN: ІСТОРІЯ ПОЇЗДОК -->
+<div class="screen" id="screen-history">
+  <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px">
+    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0">‹</button>
+    <span style="font-size:17px;font-weight:500;color:#fff">🕐 Історія поїздок</span>
+  </div>
+  <div id="history-body" style="padding:20px 16px">
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:14px">🚕</div>
+      <div style="font-size:17px;font-weight:500;color:var(--text);margin-bottom:8px">У вас ще немає поїздок</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6">З'являться поїздки —<br>з'явиться історія</div>
+    </div>
+  </div>
+</div>
 
 <!-- SCREEN: ОГОЛОШЕННЯ -->
 <div class="screen" id="screen-announcements">
