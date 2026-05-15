@@ -168,13 +168,22 @@
   .map-logo span:last-child { color: var(--accent); }
   .gps-pill {
     position: absolute; bottom: 12px; left: 12px;
-    background: #e53935;
-    border: none;
-    border-radius: 20px; padding: 9px 16px;
-    font-size: 14px; font-weight: 600; color: #fff;
-    display: flex; align-items: center; gap: 6px;
-    box-shadow: 0 3px 10px rgba(229,57,53,0.5);
+    background: rgba(15,15,15,0.82);
+    border-radius: 20px; padding: 7px 13px;
+    font-size: 13px; font-weight: 500; color: #fff;
+    display: flex; align-items: center; gap: 7px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    z-index: 20; max-width: calc(100% - 60px);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .gps-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex-shrink: 0; transition: background 0.3s;
+  }
+  .gps-dot.searching { background: #f5c842; animation: gps-blink 1s infinite; }
+  .gps-dot.found     { background: #4cd964; }
+  .gps-dot.error     { background: #ff453a; }
+  @keyframes gps-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   .bottom-panel { padding: 14px 16px 20px; background: var(--surface); }
   .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;
@@ -441,7 +450,10 @@
     <div class="map-overlay-top">
       <div class="map-logo"><span>Novo</span><span>Taxi</span></div>
     </div>
-    <div class="gps-pill" id="gpsPill">📍 GPS активний</div>
+    <div class="gps-pill" id="gpsPill">
+      <div class="gps-dot searching" id="gpsDot"></div>
+      <span id="gpsText">Шукаємо GPS...</span>
+    </div>
   </div>
   <div class="bottom-panel">
     <div class="chips" id="typeChips">
@@ -534,8 +546,17 @@ function initMap() {
       const lng = pos.coords.longitude;
       map.setView([lat, lng], 15);
       L.marker([lat, lng], {icon: clientIcon}).addTo(map).bindPopup('Ви тут');
-      const pill = document.getElementById('gpsPill');
-      if (pill) pill.textContent = '📍 ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+      // Зворотнє геокодування — отримуємо адресу
+      document.getElementById('gpsDot').className = 'gps-dot found';
+      document.getElementById('gpsText').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+      fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=uk')
+        .then(r=>r.json()).then(d=>{
+          const addr = d.address;
+          const street = (addr.road || addr.pedestrian || addr.footway || '');
+          const house = (addr.house_number || '');
+          const text = street ? (street + (house ? ', '+house : '')) : (addr.city || addr.town || addr.village || 'Ваше місце');
+          document.getElementById('gpsText').textContent = text;
+        }).catch(()=>{});
     });
   } else {
     L.marker([50.1234, 27.4567], {icon: clientIcon}).addTo(map);
