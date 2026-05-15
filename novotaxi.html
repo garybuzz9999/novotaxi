@@ -1310,6 +1310,8 @@ function initMap() {
     } catch(e) {}
   };
 
+  var _drvDeclinedOrders = new Set();
+
   function drvStartPolling() {
     if (_drvPollInterval) clearInterval(_drvPollInterval);
     _drvPollInterval = setInterval(async function() {
@@ -1320,17 +1322,42 @@ function initMap() {
         var found = null;
         Object.entries(orders).forEach(function(entry) {
           var id = entry[0]; var o = entry[1];
-          if (o.status === 'searching' && !found) found = [id, o];
+          if (o.status === 'searching' && !found && !_drvDeclinedOrders.has(id)) {
+            found = [id, o];
+          }
         });
         if (found) drvShowOrder(found[0], found[1]);
       } catch(e) {}
     }, 5000);
   }
 
+  function drvPlaySound() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Три короткі сигнали
+      [0, 0.3, 0.6].forEach(function(t) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.5, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.25);
+      });
+    } catch(e) {}
+  }
+
   function drvShowOrder(orderId, order) {
     _drvCurrentOrder = orderId;
     window._lastOrderId = orderId;
     window._lastOrderData = order;
+    // Звуковий сигнал
+    drvPlaySound();
+    // Вібрація якщо підтримується
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
     document.getElementById('drv-waiting').style.display = 'none';
     document.getElementById('drv-order-card').style.display = 'block';
     var names = {std:'Стандарт', est:'Універсал', bus:'Бус', cargo:'Вантажний', courier:"Кур'єр"};
@@ -1382,6 +1409,7 @@ function initMap() {
 
   window.drvDecline = function() {
     clearInterval(_drvTimer);
+    if (_drvCurrentOrder) _drvDeclinedOrders.add(_drvCurrentOrder);
     _drvCurrentOrder = null;
     document.getElementById('drv-order-card').style.display = 'none';
     document.getElementById('drv-waiting').style.display = 'block';
