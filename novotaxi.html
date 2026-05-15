@@ -884,12 +884,26 @@ function initMap() {
     var clientData = clientSnap.val() || {};
     var clientPhone = clientData.phone || localStorage.getItem('nt_phone') || '';
     var clientName = clientData.name || user.displayName || 'Клієнт';
+    // Отримуємо GPS клієнта
+    var clientLat = 0, clientLng = 0;
+    if (navigator.geolocation) {
+      try {
+        var pos = await new Promise(function(res, rej) {
+          navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000});
+        });
+        clientLat = pos.coords.latitude;
+        clientLng = pos.coords.longitude;
+      } catch(e) {}
+    }
+    var fromAddress = document.getElementById('gpsText') ? document.getElementById('gpsText').textContent : '';
     await set(ref(db, 'orders/' + orderId), {
       client_id: user.uid,
       client_name: clientName,
       client_phone: clientPhone,
+      client_lat: clientLat,
+      client_lng: clientLng,
       vehicle_type: type,
-      from_address: document.getElementById('gpsPill') ? (document.getElementById('gpsText') ? document.getElementById('gpsText').textContent : '') : '',
+      from_address: fromAddress,
       to_address: dest || 'По місту',
       status: 'searching',
       created_at: new Date().toISOString()
@@ -899,6 +913,96 @@ function initMap() {
 
 
 
+
+  // ===== КАРТА МАРШРУТУ ДО КЛІЄНТА =====
+  var _drvRouteMap = null;
+
+  window.showDriverRouteMap = function(orderData) {
+    showScreen('screen-driver-map');
+    var clientLat = orderData.client_lat || 0;
+    var clientLng = orderData.client_lng || 0;
+    var clientName = orderData.client_name || 'Клієнт';
+    var clientPhone = orderData.client_phone || '';
+    var fromAddr = orderData.from_address || 'Адреса подачі';
+
+    // Оновлюємо UI
+    document.getElementById('drvmap-ava').textContent = clientName.substring(0,2).toUpperCase();
+    document.getElementById('drvmap-name').textContent = clientName;
+    document.getElementById('drvmap-addr').textContent = fromAddr;
+    document.getElementById('drvmap-phone').href = 'tel:' + clientPhone;
+
+    // Ініціалізуємо карту
+    setTimeout(function() {
+      var mapEl = document.getElementById('driver-route-map');
+      if (!mapEl) return;
+
+      // Видаляємо стару карту якщо є
+      if (_drvRouteMap) { _drvRouteMap.remove(); _drvRouteMap = null; }
+
+      var centerLat = clientLat || 50.1234;
+      var centerLng = clientLng || 27.4567;
+      _drvRouteMap = L.map('driver-route-map', {zoomControl:false, attributionControl:false}).setView([centerLat, centerLng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(_drvRouteMap);
+
+      // Маркер клієнта
+      var clientIcon = L.divIcon({
+        html: '<div style="width:18px;height:18px;border-radius:50%;background:#f5c842;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+        iconSize:[18,18], iconAnchor:[9,9], className:''
+      });
+      if (clientLat && clientLng) {
+        L.marker([clientLat, clientLng], {icon: clientIcon}).addTo(_drvRouteMap)
+          .bindPopup(clientName + '<br>' + fromAddr).openPopup();
+      }
+
+      // GPS водія
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var drvLat = pos.coords.latitude;
+          var drvLng = pos.coords.longitude;
+          var drvIcon = L.divIcon({
+            html: '<div style="background:#0f0f0f;color:#f5c842;padding:3px 7px;border-radius:6px;font-size:12px;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.4)">🚗 Ви</div>',
+            iconSize:[50,24], iconAnchor:[25,12], className:''
+          });
+          L.marker([drvLat, drvLng], {icon: drvIcon}).addTo(_drvRouteMap);
+
+          // Лінія між водієм і клієнтом
+          if (clientLat && clientLng) {
+            L.polyline([[drvLat, drvLng], [clientLat, clientLng]], {
+              color: '#f5c842', weight: 3, dashArray: '8,6', opacity: 0.8
+            }).addTo(_drvRouteMap);
+
+            // Відстань
+            var R = 6371;
+            var dLat = (clientLat - drvLat) * Math.PI / 180;
+            var dLon = (clientLng - drvLng) * Math.PI / 180;
+            var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(drvLat*Math.PI/180)*Math.cos(clientLat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+            var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            var mins = Math.round(dist / 0.4);
+            document.getElementById('drv-map-pill').textContent = '📍 ' + dist.toFixed(1) + ' км · ~' + mins + ' хв';
+
+            // Центруємо між водієм і клієнтом
+            _drvRouteMap.fitBounds([[drvLat, drvLng], [clientLat, clientLng]], {padding:[30,30]});
+          }
+        });
+      }
+      setTimeout(function() { _drvRouteMap.invalidateSize(); }, 200);
+    }, 100);
+  };
+
+  window.drvOpenExternalMaps = function() {
+    var addr = (window._lastOrderData && window._lastOrderData.from_address) || '';
+    var lat = window._lastOrderData && window._lastOrderData.client_lat;
+    var lng = window._lastOrderData && window._lastOrderData.client_lng;
+    var url;
+    if (lat && lng) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving';
+    } else if (addr) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(addr) + '&travelmode=driving';
+    } else {
+      url = 'https://maps.google.com';
+    }
+    window.open(url, '_blank');
+  };
   // ===== ПОЇЗДКА ВОДІЯ =====
   var _rideMeterInt = null;
   var _rideSec = 0;
@@ -1270,30 +1374,10 @@ function initMap() {
     document.getElementById('drv-order-card').style.display = 'none';
     document.getElementById('drv-waiting').style.display = 'block';
 
-    // Адреса клієнта для маршруту
-    var fromAddr = (window._lastOrderData && window._lastOrderData.from_address) || '';
-    var mapsUrl = fromAddr
-      ? 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(fromAddr) + '&travelmode=driving'
-      : 'https://maps.google.com';
-
-    // Відкриваємо Google Maps одразу
-    window.open(mapsUrl, '_blank');
-
-    // Екран очікування з кнопкою "Пасажир сів"
-    var clientPhone2 = (window._lastOrderData && window._lastOrderData.client_phone) || '';
-    var clientName2 = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
-    var phoneHtml = clientPhone2
-      ? '<a href="tel:' + clientPhone2 + '" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--black);padding:10px 20px;border-radius:20px;text-decoration:none;font-size:15px;font-weight:500;margin-top:10px">📞 Зателефонувати ' + clientName2 + '</a>'
-      : '';
-    document.getElementById('drv-waiting').innerHTML =
-      '<div style="font-size:36px;margin-bottom:10px">🚗</div>' +
-      '<div style="font-size:15px;font-weight:500;color:var(--text)">Їдьте до клієнта</div>' +
-      '<div style="font-size:13px;color:var(--muted);margin-top:6px">' + (fromAddr || 'Адреса подачі') + '</div>' +
-      phoneHtml +
-      '<div style="margin-top:8px"><button onclick="openMapsToClient()" style="background:var(--surface);border:.5px solid var(--border);color:var(--muted);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer">🗺️ Maps ще раз</button></div>' +
-      '<div style="margin-top:16px;padding-top:16px;border-top:.5px solid var(--border)">' +
-      '<button onclick="passengerIn()" style="background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer">🧑 Пасажир сів</button>' +
-      '</div>';
+    // Показуємо карту з локацією клієнта
+    if (window.showDriverRouteMap) {
+      window.showDriverRouteMap(window._lastOrderData || {});
+    }
   };
 
   window.drvDecline = function() {
@@ -1555,6 +1639,32 @@ function initMap() {
   };
 
   window.boLogout = () => showScreen('screen-role');
+
+  window.boCreateTestOrder = async function() {
+    var from = document.getElementById('test-from').value.trim() || 'вул. Незалежності, 12';
+    var to = document.getElementById('test-to').value.trim() || 'вул. Шевченка, 45';
+    var type = document.getElementById('test-type').value || 'std';
+    var phone = document.getElementById('test-phone').value.trim() || '+380671234567';
+    var orderId = 'test_' + Date.now();
+    try {
+      await window._set(window._ref(window._db, 'orders/' + orderId), {
+        client_id: 'test_client',
+        client_name: 'Тестовий клієнт',
+        client_phone: phone,
+        vehicle_type: type,
+        from_address: from,
+        to_address: to,
+        status: 'searching',
+        created_at: new Date().toISOString()
+      });
+      document.getElementById('test-order-result').innerHTML =
+        '<div style="color:#4cd964">✅ Замовлення створено! ID: ' + orderId + '</div>' +
+        '<div style="color:var(--hint);margin-top:4px">Водій побачить його через ~5 сек якщо він онлайн</div>';
+      showToast('✅ Тестове замовлення створено!');
+    } catch(e) {
+      document.getElementById('test-order-result').innerHTML = '<div style="color:#ff453a">❌ ' + e.message + '</div>';
+    }
+  };
 
   window.boNav = (id, btn) => {
     document.querySelectorAll('.bo-page').forEach(p=>p.classList.remove('on'));
@@ -1876,6 +1986,48 @@ function initMap() {
 
 
 
+
+<!-- SCREEN: КАРТА МАРШРУТУ ДО КЛІЄНТА -->
+<div class="screen" id="screen-driver-map">
+  <div style="background:var(--black);padding:11px 16px;display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:16px;font-weight:500"><span style="color:#fff">Novo</span><span style="color:var(--accent)">Taxi</span></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6)">Їдьте до клієнта</div>
+  </div>
+
+  <!-- Карта -->
+  <div style="position:relative;height:55vh;background:#eef2e8">
+    <div id="driver-route-map" style="width:100%;height:100%"></div>
+    <!-- Пілюля з відстанню -->
+    <div id="drv-map-pill" style="position:absolute;bottom:12px;left:12px;background:rgba(15,15,15,.88);border:1.5px solid var(--accent);border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--accent);z-index:10">
+      📍 Визначаємо...
+    </div>
+  </div>
+
+  <!-- Панель -->
+  <div style="padding:14px 16px">
+    <!-- Клієнт -->
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border-radius:12px;margin-bottom:12px">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:var(--black);flex-shrink:0" id="drvmap-ava">МК</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:500;color:var(--text)" id="drvmap-name">Клієнт</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="drvmap-addr">Адреса подачі</div>
+      </div>
+      <a id="drvmap-phone" href="tel:" style="display:flex;align-items:center;gap:5px;background:var(--accent);color:var(--black);padding:8px 14px;border-radius:20px;text-decoration:none;font-size:14px;font-weight:500;flex-shrink:0">
+        📞 Дзвонити
+      </a>
+    </div>
+
+    <!-- Кнопки -->
+    <div style="display:flex;gap:8px">
+      <button onclick="drvOpenExternalMaps()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">
+        🗺️ Google Maps
+      </button>
+      <button onclick="passengerIn()" style="flex:2;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer">
+        🧑 Пасажир сів →
+      </button>
+    </div>
+  </div>
+</div>
 <!-- SCREEN: ПОЇЗДКА (пасажир сів) -->
 <div class="screen" id="screen-ride">
   <div style="background:var(--black);padding:11px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -2337,6 +2489,39 @@ function initMap() {
       <div id="bo-price-info">💰 Підписка: завантаження...</div>
     </div>
     <button class="bo-btn" onclick="boRefreshStats()">🔄 Оновити дані</button>
+
+    <div class="bo-lbl" style="margin-top:16px">Тест системи</div>
+    <div class="bo-card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        Створити тестове замовлення щоб перевірити що водій його бачить
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+        <div class="bo-field" style="margin-bottom:0">
+          <label>Адреса подачі</label>
+          <input class="bo-input" id="test-from" value="вул. Незалежності, 12" placeholder="Адреса подачі">
+        </div>
+        <div class="bo-field" style="margin-bottom:0">
+          <label>Куди везти</label>
+          <input class="bo-input" id="test-to" value="вул. Шевченка, 45" placeholder="Куди везти">
+        </div>
+        <div class="bo-field" style="margin-bottom:0">
+          <label>Тип авто</label>
+          <select class="bo-input" id="test-type">
+            <option value="std">🚗 Стандарт</option>
+            <option value="est">🚙 Універсал</option>
+            <option value="bus">🚐 Бус</option>
+            <option value="cargo">🚛 Вантажний</option>
+            <option value="courier">📦 Кур'єр</option>
+          </select>
+        </div>
+        <div class="bo-field" style="margin-bottom:0">
+          <label>Телефон клієнта (для тесту)</label>
+          <input class="bo-input" id="test-phone" value="+380671234567" placeholder="+380...">
+        </div>
+      </div>
+      <button class="bo-btn" onclick="boCreateTestOrder()">🚕 Створити тестове замовлення</button>
+      <div id="test-order-result" style="margin-top:10px;font-size:13px;color:var(--hint)"></div>
+    </div>
     <button class="bo-btn" style="background:transparent;color:var(--hint);border:.5px solid var(--border);margin-top:8px" onclick="boLogout()">← Вийти з адмінпанелі</button>
   </div>
 
