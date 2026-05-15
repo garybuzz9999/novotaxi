@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NovoTaxi</title>
+<style>
+  :root {
+    --black: #0f0f0f;
+    --accent: #f5c842;
+    --accent2: #e8b800;
+    --bg: #1a1a1a;
+    --surface: #242424;
+    --surface2: #2e2e2e;
+    --border: #3a3a3a;
+    --text: #ffffff;
+    --muted: #aaaaaa;
+    --hint: #666666;
+    --green: #4cd964;
+    --red: #ff453a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .screen { display: none; }
+  .screen.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* SPLASH */
+  .splash-logo {
+    background: var(--black);
+    padding: 48px 24px 36px;
+    text-align: center;
+  }
+  .splash-logo h1 { font-size: 42px; font-weight: 700; letter-spacing: -1px; }
+  .splash-logo h1 span:first-child { color: #fff; }
+  .splash-logo h1 span:last-child { color: var(--accent); }
+  .splash-logo p { font-size: 14px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+
+  .role-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .role-label { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 4px; }
+
+  .role-card {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 18px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .role-card:hover { border-color: var(--accent2); }
+  .role-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; flex-shrink: 0;
+  }
+  .role-icon.client { background: rgba(55,138,221,0.12); }
+  .role-icon.driver { background: rgba(232,184,0,0.12); }
+  .role-name { font-size: 18px; font-weight: 500; color: var(--text); }
+  .role-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .role-arrow { margin-left: auto; font-size: 22px; color: var(--hint); }
+  .role-footer { font-size: 12px; color: var(--hint); text-align: center; padding: 8px 0 16px; line-height: 1.6; margin-top: auto; }
+
+  /* CLIENT AUTH */
+  .auth-header {
+    background: var(--black); padding: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .back-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 24px; cursor: pointer; padding: 0;
+  }
+  .auth-header h2 { font-size: 17px; font-weight: 500; color: #fff; }
+
+  .auth-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; }
+  .auth-hero { text-align: center; margin-bottom: 28px; }
+  .auth-emoji { font-size: 52px; margin-bottom: 10px; }
+  .auth-title { font-size: 22px; font-weight: 500; }
+  .auth-sub { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  .social-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 15px 18px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); cursor: pointer;
+    font-size: 16px; color: var(--text); margin-bottom: 12px;
+    transition: background 0.1s;
+  }
+  .social-btn:hover { background: var(--surface2); }
+  .social-btn .icon { font-size: 22px; }
+
+  .geo-warn {
+    border-radius: 12px;
+    border: 1px solid #f5a623;
+    background: rgba(245,166,35,0.1);
+    padding: 14px 16px; display: flex; gap: 12px;
+    align-items: flex-start; margin-top: 8px;
+  }
+  .geo-warn .icon { font-size: 20px; flex-shrink: 0; }
+  .geo-warn p:first-child { font-size: 14px; font-weight: 500; color: #f5a623; }
+  .geo-warn p:last-child { font-size: 12px; color: #f5a623; opacity: 0.8; margin-top: 3px; line-height: 1.5; }
+
+  /* PHONE SCREEN */
+  .phone-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; }
+  .phone-hero { text-align: center; margin-bottom: 24px; }
+  .phone-block {
+    background: var(--surface); border-radius: 12px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  .phone-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .phone-row { display: flex; gap: 10px; align-items: center; }
+  .phone-prefix {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    font-size: 16px; font-weight: 500; color: var(--text);
+    flex-shrink: 0;
+  }
+  .phone-input {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-size: 18px; font-weight: 500;
+    color: var(--text); outline: none; letter-spacing: 1px;
+  }
+  .phone-input:focus { border-color: var(--accent2); }
+  .lock-warn {
+    border-radius: 12px; border: 1px solid #f5a623;
+    background: rgba(245,166,35,0.1);
+    padding: 12px 16px; margin-bottom: 20px;
+    display: flex; gap: 12px;
+  }
+  .lock-warn .icon { font-size: 18px; flex-shrink: 0; color: #f5a623; }
+  .lock-warn p:first-child { font-size: 14px; font-weight: 500; color: #f5a623; }
+  .lock-warn p:last-child { font-size: 12px; color: #f5a623; opacity: 0.8; margin-top: 3px; line-height: 1.5; }
+
+  /* BTN */
+  .btn-primary {
+    width: 100%; background: var(--accent); color: var(--black);
+    border: none; border-radius: 12px; padding: 16px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-top: auto;
+  }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary.dark { background: var(--black); color: var(--accent); }
+
+  /* MAIN CLIENT */
+  .map-area {
+    height: 260px; background: #2a3a2a;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-placeholder { font-size: 14px; color: rgba(255,255,255,0.3); text-align: center; }
+  .map-overlay-top {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .map-logo {
+    background: rgba(15,15,15,0.9); padding: 7px 14px;
+    border-radius: 20px; font-size: 16px; font-weight: 700;
+  }
+  .map-logo span:first-child { color: #fff; }
+  .map-logo span:last-child { color: var(--accent); }
+  .gps-pill {
+    position: absolute; bottom: 12px; left: 12px;
+    background: rgba(76,217,100,0.15); border: 1px solid rgba(76,217,100,0.4);
+    border-radius: 20px; padding: 6px 12px;
+    font-size: 12px; color: var(--green);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .bottom-panel { padding: 14px 16px 20px; background: var(--surface); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;
+    scrollbar-width: none; margin-bottom: 14px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--surface2);
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    font-size: 13px; font-weight: 500; color: var(--text);
+  }
+  .chip.sel { border-color: var(--accent2); background: rgba(232,184,0,0.1); }
+  .chip-price { font-size: 11px; color: var(--hint); margin-left: 2px; }
+
+  .dest-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 12px;
+  }
+  .dest-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text); flex-shrink: 0; }
+  .dest-input {
+    flex: 1; border: none; background: transparent;
+    font-size: 15px; color: var(--text); outline: none;
+  }
+  .dest-input::placeholder { color: var(--hint); }
+  .city-btn {
+    font-size: 13px; color: var(--accent2); font-weight: 500;
+    cursor: pointer; border: none; background: none; padding: 0; flex-shrink: 0;
+  }
+
+  .tariff-hint {
+    display: flex; justify-content: center; gap: 16px;
+    padding: 6px 0 12px; font-size: 12px; color: var(--hint);
+  }
+  .tariff-hint strong { color: var(--muted); font-weight: 500; }
+
+  /* NAV */
+  .bottom-nav {
+    display: flex; background: var(--black);
+    border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-btn {
+    flex: 1; padding: 10px 4px 8px; text-align: center;
+    cursor: pointer; border: none; background: none;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .nav-btn .nav-icon { font-size: 22px; color: var(--hint); }
+  .nav-btn .nav-label { font-size: 10px; color: var(--hint); }
+  .nav-btn.active .nav-icon { color: var(--accent2); }
+  .nav-btn.active .nav-label { color: var(--accent2); }
+
+  /* STATUS */
+  .status-bar {
+    background: var(--black); padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .status-bar h2 { font-size: 17px; font-weight: 500; color: #fff; }
+  .online-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: rgba(255,255,255,0.6);
+  }
+  .online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+  /* LOADER */
+  .loader {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; z-index: 100;
+  }
+  .loader h1 { font-size: 36px; font-weight: 700; }
+  .loader h1 span:first-child { color: #fff; }
+  .loader h1 span:last-child { color: var(--accent); }
+  .loader p { font-size: 14px; color: var(--muted); }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--black); color: var(--text);
+    padding: 12px 22px; border-radius: 20px;
+    font-size: 14px; transition: transform 0.3s; z-index: 99;
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* READY SCREEN */
+  .ready-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .ready-card {
+    background: var(--surface); border-radius: 12px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+  }
+  .ready-card-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--black); display: flex; align-items: center;
+    justify-content: center; font-size: 20px; flex-shrink: 0;
+  }
+  .ready-card-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .ready-card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .phone-summary {
+    background: var(--surface); border-radius: 12px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    margin-bottom: 4px;
+  }
+  .phone-summary-val { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; }
+  .phone-locked { font-size: 12px; color: var(--hint); display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <h1><span>Novo</span><span>Taxi</span></h1>
+  <div class="spinner"></div>
+  <p id="loaderText">Підключення до Firebase...</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SCREEN: ВИБІР РОЛІ -->
+<div class="screen" id="screen-role">
+  <div class="splash-logo">
+    <h1><span>Novo</span><span>Taxi</span></h1>
+    <p>Новоград · таксі, доставка, кур'єр</p>
+  </div>
+  <div class="role-body">
+    <div class="role-label">Хто ви?</div>
+    <div class="role-card" onclick="showScreen('screen-client-auth')">
+      <div class="role-icon client">🙋</div>
+      <div>
+        <div class="role-name">Я клієнт</div>
+        <div class="role-desc">Хочу замовити таксі або доставку</div>
+      </div>
+      <div class="role-arrow">›</div>
+    </div>
+    <div class="role-card" onclick="showScreen('screen-driver-auth')">
+      <div class="role-icon driver">🚗</div>
+      <div>
+        <div class="role-name">Я водій / кур'єр</div>
+        <div class="role-desc">Хочу приймати замовлення і заробляти</div>
+      </div>
+      <div class="role-arrow">›</div>
+    </div>
+    <div class="role-footer">
+      Один додаток для всіх.<br>
+      Firebase: <span id="fb-status" style="color:var(--hint)">перевірка...</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: КЛІЄНТ АВТОРИЗАЦІЯ -->
+<div class="screen" id="screen-client-auth">
+  <div class="auth-header">
+    <button class="back-btn" onclick="showScreen('screen-role')">‹</button>
+    <h2>Вхід для клієнтів</h2>
+  </div>
+  <div class="auth-body">
+    <div class="auth-hero">
+      <div class="auth-emoji">🙋</div>
+      <div class="auth-title">Вхід або реєстрація</div>
+      <div class="auth-sub">Один тап — і ви в системі</div>
+    </div>
+    <button class="social-btn" onclick="signInGoogle()">
+      <span class="icon">🔵</span>
+      Продовжити з Google
+    </button>
+    <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
+      <span class="icon">🍎</span>
+      Продовжити з Apple
+    </button>
+    <div class="geo-warn">
+      <span class="icon">📍</span>
+      <div>
+        <p>GPS обов'язковий</p>
+        <p>Без геолокації додаток не працює — не зможемо знайти найближчого водія</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: ТЕЛЕФОН -->
+<div class="screen" id="screen-phone">
+  <div class="auth-header">
+    <button class="back-btn" onclick="showScreen('screen-client-auth')">‹</button>
+    <h2>Прив'яжіть телефон</h2>
+  </div>
+  <div class="phone-body">
+    <div class="phone-hero">
+      <div class="auth-emoji">📱</div>
+      <div class="auth-title">Ваш номер телефону</div>
+      <div class="auth-sub">Водій зв'яжеться з вами під час поїздки</div>
+    </div>
+    <div class="phone-block">
+      <div class="phone-label">Номер телефону</div>
+      <div class="phone-row">
+        <div class="phone-prefix">🇺🇦 +380</div>
+        <input class="phone-input" type="tel" id="phoneInput"
+          placeholder="67 123 45 67" maxlength="12"
+          oninput="checkPhone()">
+      </div>
+    </div>
+    <div class="lock-warn">
+      <span class="icon">🔒</span>
+      <div>
+        <p>Номер не змінюється</p>
+        <p>Телефон прив'язується до акаунту назавжди. Один номер — один акаунт.</p>
+      </div>
+    </div>
+    <button class="btn-primary" id="phoneBtn" onclick="savePhone()" disabled>
+      ✓ Підтвердити номер
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN: ГОТОВО (клієнт) -->
+<div class="screen" id="screen-ready">
+  <div class="auth-header">
+    <div style="width:24px"></div>
+    <h2>NovoTaxi</h2>
+  </div>
+  <div class="ready-body">
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:52px;margin-bottom:12px">✅</div>
+      <div style="font-size:22px;font-weight:500">Все готово!</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:6px">Акаунт створено · можна замовляти</div>
+    </div>
+    <div class="phone-summary">
+      <span>📱</span>
+      <span class="phone-summary-val" id="phoneSummaryVal">+380 __ __ __</span>
+      <span class="phone-locked">🔒 зафіксовано</span>
+    </div>
+    <div class="ready-card">
+      <div class="ready-card-icon">🚕</div>
+      <div>
+        <div class="ready-card-title">Замовляйте таксі</div>
+        <div class="ready-card-sub">Стандарт, Універсал, Бус — прямо з карти</div>
+      </div>
+    </div>
+    <div class="ready-card">
+      <div class="ready-card-icon">📦</div>
+      <div>
+        <div class="ready-card-title">Оголошення на доставку</div>
+        <div class="ready-card-sub">Холодильник, меблі — перший відгукнеться</div>
+      </div>
+    </div>
+    <div class="ready-card">
+      <div class="ready-card-icon">💵</div>
+      <div>
+        <div class="ready-card-title">Оплата готівкою водієві</div>
+        <div class="ready-card-sub">Тариф фіксований — ціна відома заздалегідь</div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="showScreen('screen-main')">
+      🚕 Замовити таксі
+    </button>
+  </div>
+</div>
+
+<!-- SCREEN: ГОЛОВНА (клієнт) -->
+<div class="screen" id="screen-main">
+  <div class="map-area">
+    <div class="map-placeholder">
+      🗺️<br>Карта завантажується<br>
+      <span style="font-size:11px;margin-top:4px;display:block">Leaflet + OpenStreetMap</span>
+    </div>
+    <div class="map-overlay-top">
+      <div class="map-logo"><span>Novo</span><span>Taxi</span></div>
+    </div>
+    <div class="gps-pill">📍 GPS активний</div>
+  </div>
+  <div class="bottom-panel">
+    <div class="chips" id="typeChips">
+      <div class="chip sel" onclick="selType(this,'std',30,5)">🚗 Стандарт <span class="chip-price">30+</span></div>
+      <div class="chip" onclick="selType(this,'est',40,6)">🚙 Універсал <span class="chip-price">40+</span></div>
+      <div class="chip" onclick="selType(this,'bus',60,8)">🚐 Бус <span class="chip-price">60+</span></div>
+      <div class="chip" onclick="selType(this,'cargo',80,10)">🚛 Вантажний <span class="chip-price">80+</span></div>
+      <div class="chip" onclick="selType(this,'courier',30,5)">📦 Кур'єр <span class="chip-price">30+</span></div>
+    </div>
+    <div class="dest-row">
+      <div class="dest-dot"></div>
+      <input class="dest-input" id="destInput" placeholder="Куди їдемо? (необов'язково)" oninput="updateBtn()">
+      <button class="city-btn" onclick="document.getElementById('destInput').value='';updateBtn()">По місту</button>
+    </div>
+    <button class="btn-primary dark" id="callBtn" onclick="callTaxi()">
+      🚕 <span id="callBtnTxt">Викликати Стандарт</span>
+    </button>
+    <div class="tariff-hint">
+      <span>Посадка <strong id="tBoard">30 грн</strong></span>
+      <span><strong id="tKm">5 грн</strong>/км</span>
+      <span><strong>1 грн</strong>/хв</span>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Головна</span>
+    </button>
+    <button class="nav-btn" onclick="showToast('Оголошення — скоро')">
+      <span class="nav-icon">📢</span>
+      <span class="nav-label">Оголошення</span>
+    </button>
+    <button class="nav-btn" onclick="showToast('Історія — скоро')">
+      <span class="nav-icon">🕐</span>
+      <span class="nav-label">Історія</span>
+    </button>
+    <button class="nav-btn" onclick="showProfile()">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Профіль</span>
+    </button>
+  </nav>
+</div>
+
+<!-- SCREEN: ВОДІЙ AUTH -->
+<div class="screen" id="screen-driver-auth">
+  <div class="auth-header">
+    <button class="back-btn" onclick="showScreen('screen-role')">‹</button>
+    <h2>Реєстрація водія</h2>
+  </div>
+  <div class="auth-body">
+    <div class="auth-hero">
+      <div class="auth-emoji">🚗</div>
+      <div class="auth-title">Водій / Кур'єр</div>
+      <div class="auth-sub">7 днів безкоштовно.<br>Далі 300 грн/міс — оплата в додатку.</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:18px;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Ваш email для реєстрації</div>
+      <input type="email" id="driverEmail" placeholder="your@email.com"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--text);outline:none;margin-bottom:10px">
+      <input type="password" id="driverPass" placeholder="Пароль (мін. 6 символів)"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:16px;color:var(--text);outline:none">
+    </div>
+    <button class="btn-primary dark" onclick="registerDriver()">
+      📧 Зареєструватись через Email
+    </button>
+    <div style="font-size:12px;color:var(--hint);text-align:center;margin-top:14px;line-height:1.7">
+      Реєструючись ви погоджуєтесь з умовами.<br>
+      Перші 7 днів безкоштовно — без карти.
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, set, get, onValue }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+  import { getAuth, signInWithPopup, GoogleAuthProvider,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDixXJ-eggW5gE_VaubAM827lUWG7-v4rU",
+    authDomain: "novotaxi-fcb7f.firebaseapp.com",
+    databaseURL: "https://novotaxi-fcb7f-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "novotaxi-fcb7f",
+    storageBucket: "novotaxi-fcb7f.firebasestorage.app",
+    messagingSenderId: "6765698996",
+    appId: "1:6765698996:web:023685ec3c60250cf7dce1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // перевіряємо підключення
+  document.getElementById('loaderText').textContent = 'Читаємо конфіг...';
+
+  get(ref(db, 'config/settings')).then(snap => {
+    if (snap.exists()) {
+      const s = snap.val();
+      document.getElementById('fb-status').textContent =
+        '✅ підключено · пробний ' + s.trial_days + 'дн · ' + s.subscription_price + 'грн/міс';
+      document.getElementById('fb-status').style.color = '#4cd964';
+    } else {
+      document.getElementById('fb-status').textContent = '✅ підключено';
+      document.getElementById('fb-status').style.color = '#4cd964';
+    }
+  }).catch(e => {
+    document.getElementById('fb-status').textContent = '❌ помилка: ' + e.message;
+    document.getElementById('fb-status').style.color = '#ff453a';
+  });
+
+  // читаємо тарифи з Firebase
+  get(ref(db, 'config/tariffs')).then(snap => {
+    if (snap.exists()) {
+      window._tariffs = snap.val();
+    }
+  });
+
+  // стан авторизації
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loader').style.display = 'none';
+    if (user) {
+      // клієнт вже залогінений
+      const phone = localStorage.getItem('nt_phone');
+      if (phone) {
+        showScreen('screen-main');
+      } else {
+        showScreen('screen-phone');
+      }
+    } else {
+      showScreen('screen-role');
+    }
+  });
+
+  // Google Sign In
+  window.signInGoogle = async () => {
+    try {
+      showToast('Відкриваємо Google...');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // зберігаємо клієнта в базі
+      await set(ref(db, 'clients/' + user.uid), {
+        name: user.displayName || 'Клієнт',
+        email: user.email,
+        created_at: new Date().toISOString(),
+        trips_count: 0
+      });
+      showToast('✅ Вхід успішний!');
+      const phone = localStorage.getItem('nt_phone');
+      if (phone) showScreen('screen-main');
+      else showScreen('screen-phone');
+    } catch (e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
+
+  // Зберегти телефон
+  window.savePhone = async () => {
+    const phone = document.getElementById('phoneInput').value.replace(/\D/g,'');
+    const user = auth.currentUser;
+    if (!user) return;
+    await set(ref(db, 'clients/' + user.uid + '/phone'), '+380' + phone);
+    localStorage.setItem('nt_phone', '+380' + phone);
+    document.getElementById('phoneSummaryVal').textContent = '+380 ' + phone;
+    showScreen('screen-ready');
+    showToast('📱 Телефон збережено!');
+  };
+
+  // Реєстрація водія
+  window.registerDriver = async () => {
+    const email = document.getElementById('driverEmail').value.trim();
+    const pass = document.getElementById('driverPass').value;
+    if (!email || pass.length < 6) {
+      showToast('Введіть email і пароль (мін. 6 символів)');
+      return;
+    }
+    try {
+      showToast('Реєстрація...');
+      const result = await createUserWithEmailAndPassword(auth, email, pass);
+      await set(ref(db, 'drivers/' + result.user.uid), {
+        email: email,
+        role: 'driver',
+        active: false,
+        created_at: new Date().toISOString(),
+        trial_until: new Date(Date.now() + 7*24*60*60*1000).toISOString()
+      });
+      showToast('✅ Акаунт водія створено! Очікуйте підтвердження від адміна.');
+      showScreen('screen-role');
+    } catch (e) {
+      if (e.code === 'auth/email-already-in-use') {
+        // спробуємо увійти
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          showToast('✅ Вхід виконано!');
+        } catch(e2) {
+          showToast('Невірний пароль');
+        }
+      } else {
+        showToast('Помилка: ' + e.message);
+      }
+    }
+  };
+
+  // виклик таксі
+  window.callTaxi = async () => {
+    const user = auth.currentUser;
+    if (!user) { showToast('Спочатку увійдіть'); return; }
+    const dest = document.getElementById('destInput').value.trim();
+    const type = window._selType || 'std';
+    const orderId = 'ord_' + Date.now();
+    await set(ref(db, 'orders/' + orderId), {
+      client_id: user.uid,
+      vehicle_type: type,
+      to_address: dest || 'По місту',
+      status: 'searching',
+      created_at: new Date().toISOString()
+    });
+    showToast('🔍 Шукаємо водія...');
+  };
+
+</script>
+
+<script>
+  // UI функції
+  window._selType = 'std';
+  window._tariffs = {
+    std:{board:30,km:5}, est:{board:40,km:6},
+    bus:{board:60,km:8}, cargo:{board:80,km:10}, courier:{board:30,km:5}
+  };
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function checkPhone() {
+    const v = document.getElementById('phoneInput').value.replace(/\D/g,'');
+    document.getElementById('phoneBtn').disabled = v.length < 9;
+  }
+
+  function selType(el, type, board, km) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    window._selType = type;
+    // беремо тарифи з Firebase якщо є
+    const t = window._tariffs[type] || {board, km};
+    document.getElementById('tBoard').textContent = (t.board || board) + ' грн';
+    document.getElementById('tKm').textContent = (t.km || km) + ' грн';
+    updateBtn();
+  }
+
+  function updateBtn() {
+    const d = document.getElementById('destInput')?.value.trim();
+    const names = {std:'Стандарт',est:'Універсал',bus:'Бус',cargo:'Вантажний',courier:"Кур'єр"};
+    const name = names[window._selType] || 'Стандарт';
+    document.getElementById('callBtnTxt').textContent =
+      d ? 'Викликати ' + name + ' → ' + d : 'Викликати ' + name;
+  }
+
+  function showProfile() {
+    showToast('Профіль — в наступній версії');
+  }
+</script>
+</body>
+</html>
