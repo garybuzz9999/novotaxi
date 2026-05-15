@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>NovoTaxi</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root {
     --black: #0f0f0f;
@@ -149,10 +150,11 @@
 
   /* MAIN CLIENT */
   .map-area {
-    height: 260px; background: #2a3a2a;
+    height: 55vw; min-height: 220px; max-height: 340px;
+    background: #2a3a2a;
     position: relative; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
   }
+  #leaflet-map { width: 100%; height: 100%; }
   .map-placeholder { font-size: 14px; color: rgba(255,255,255,0.3); text-align: center; }
   .map-overlay-top {
     position: absolute; top: 12px; left: 12px; right: 12px;
@@ -423,13 +425,7 @@
         <div class="ready-card-sub">Холодильник, меблі — перший відгукнеться</div>
       </div>
     </div>
-    <div class="ready-card">
-      <div class="ready-card-icon">💵</div>
-      <div>
-        <div class="ready-card-title">Оплата готівкою водієві</div>
-        <div class="ready-card-sub">Тариф фіксований — ціна відома заздалегідь</div>
-      </div>
-    </div>
+
     <button class="btn-primary" onclick="showScreen('screen-main')">
       🚕 Замовити таксі
     </button>
@@ -439,10 +435,7 @@
 <!-- SCREEN: ГОЛОВНА (клієнт) -->
 <div class="screen" id="screen-main">
   <div class="map-area">
-    <div class="map-placeholder">
-      🗺️<br>Карта завантажується<br>
-      <span style="font-size:11px;margin-top:4px;display:block">Leaflet + OpenStreetMap</span>
-    </div>
+    <div id="leaflet-map"></div>
     <div class="map-overlay-top">
       <div class="map-logo"><span>Novo</span><span>Taxi</span></div>
     </div>
@@ -519,6 +512,41 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Ініціалізація карти після завантаження
+function initMap() {
+  const mapEl = document.getElementById('leaflet-map');
+  if (!mapEl || mapEl._leaflet_id) return;
+  const map = L.map('leaflet-map', { zoomControl: false, attributionControl: false }).setView([50.1234, 27.4567], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  // Маркер клієнта
+  const clientIcon = L.divIcon({
+    html: '<div style="width:16px;height:16px;border-radius:50%;background:#f5c842;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>',
+    iconSize:[16,16], iconAnchor:[8,8], className:''
+  });
+  // GPS клієнта
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      map.setView([lat, lng], 15);
+      L.marker([lat, lng], {icon: clientIcon}).addTo(map).bindPopup('Ви тут');
+    });
+  } else {
+    L.marker([50.1234, 27.4567], {icon: clientIcon}).addTo(map);
+  }
+  // Демо-таксі
+  const taxiIcon = L.divIcon({
+    html: '<div style="background:#0f0f0f;color:#f5c842;padding:2px 5px;border-radius:4px;font-size:11px;white-space:nowrap">🚗</div>',
+    iconSize:[28,20], iconAnchor:[14,10], className:''
+  });
+  L.marker([50.125, 27.452], {icon: taxiIcon}).addTo(map);
+  L.marker([50.122, 27.461], {icon: taxiIcon}).addTo(map);
+  L.marker([50.120, 27.448], {icon: taxiIcon}).addTo(map);
+  setTimeout(() => map.invalidateSize(), 100);
+}
+</script>
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -681,6 +709,7 @@
   };
 
   function showScreen(id) {
+    if (id === 'screen-main') setTimeout(initMap, 100);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
