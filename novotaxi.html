@@ -1351,6 +1351,128 @@ function initMap() {
     }
     showToast('Пошук скасовано');
   };
+
+  // ===== ПЕРЕВІРКА ПІДПИСКИ ВОДІЯ =====
+  async function checkDriverSubscription() {
+    var uid = window._currentUid;
+    if (!uid) return false;
+    try {
+      var snap = await get(ref(db, 'drivers/' + uid));
+      var d = snap.val() || {};
+
+      // Перевіряємо пробний період
+      var trialUntil = d.trial_until ? new Date(d.trial_until) : null;
+      var subUntil = d.subscription_until ? new Date(d.subscription_until) : null;
+      var now = new Date();
+
+      // Активний якщо пробний ще діє АБО підписка активна
+      var trialOk = trialUntil && trialUntil > now;
+      var subOk = subUntil && subUntil > now;
+      var graceOk = false;
+
+      // Перевіряємо відстрочку
+      if (!trialOk && !subOk) {
+        var graceUntil = d.grace_until ? new Date(d.grace_until) : null;
+        graceOk = graceUntil && graceUntil > now;
+      }
+
+      if (trialOk || subOk || graceOk) return true;
+
+      // Підписка закінчилась — показуємо екран
+      showSubscriptionExpired(d, trialUntil, subUntil);
+      return false;
+    } catch(e) {
+      return true; // При помилці — дозволяємо
+    }
+  }
+
+  function showSubscriptionExpired(driverData, trialUntil, subUntil) {
+    var expDate = subUntil || trialUntil;
+    var expStr = expDate ? expDate.toLocaleDateString('uk') : '—';
+
+    // Показуємо модальний екран
+    var modal = document.getElementById('sub-expired-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'sub-expired-modal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML =
+      '<div style="background:#1a1a1a;border-radius:20px;padding:28px 20px;max-width:360px;width:100%;text-align:center;border:1px solid #333">' +
+        '<div style="font-size:52px;margin-bottom:14px">🔒</div>' +
+        '<div style="font-size:22px;font-weight:500;color:#fff;margin-bottom:8px">Підписка закінчилась</div>' +
+        '<div style="font-size:14px;color:#888;margin-bottom:20px;line-height:1.6">Термін дії закінчився ' + expStr + '.<br>Щоб продовжити роботу — оплатіть підписку.</div>' +
+        '<div style="background:#242424;border-radius:14px;padding:16px;margin-bottom:20px">' +
+          '<div style="font-size:13px;color:#666;margin-bottom:4px">Вартість підписки</div>' +
+          '<div style="font-size:32px;font-weight:500;color:#f5c842">300 грн</div>' +
+          '<div style="font-size:12px;color:#555;margin-top:4px">на місяць</div>' +
+        '</div>' +
+        '<div style="font-size:13px;color:#666;background:#1e1e1e;border-radius:10px;padding:12px;margin-bottom:20px;line-height:1.6">' +
+          '💳 Зверніться до адміністратора для оплати.<br>' +
+          '📱 Після оплати ваш акаунт буде активовано.' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'sub-expired-modal\').remove()" ' +
+          'style="width:100%;background:#333;color:#aaa;border:none;border-radius:12px;padding:13px;font-size:15px;cursor:pointer;margin-bottom:10px">' +
+          'Закрити' +
+        '</button>' +
+        '<button onclick="drvContactAdmin()" ' +
+          'style="width:100%;background:#f5c842;color:#000;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:500;cursor:pointer">' +
+          '📞 Зв\'язатися з адміном' +
+        '</button>' +
+      '</div>';
+
+    modal.style.display = 'flex';
+  }
+
+  window.drvContactAdmin = function() {
+    // Відкриваємо Viber/Telegram/телефон адміна
+    showToast('Зверніться до адміністратора для оплати підписки');
+    document.getElementById('sub-expired-modal').remove();
+  };
+
+  // Автоматична перевірка при запуску кабінету
+  window.checkSubOnInit = async function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    try {
+      var snap = await get(ref(db, 'drivers/' + uid));
+      var d = snap.val() || {};
+      var trialUntil = d.trial_until ? new Date(d.trial_until) : null;
+      var subUntil = d.subscription_until ? new Date(d.subscription_until) : null;
+      var now = new Date();
+      var trialOk = trialUntil && trialUntil > now;
+      var subOk = subUntil && subUntil > now;
+      var daysLeft = 0;
+
+      if (trialOk) {
+        daysLeft = Math.ceil((trialUntil - now) / 86400000);
+        // Попередження за 3 дні
+        if (daysLeft <= 3) {
+          setTimeout(function() {
+            showToast('⚠️ Пробний період закінчується через ' + daysLeft + ' дн!');
+          }, 2000);
+        }
+      } else if (subOk) {
+        daysLeft = Math.ceil((subUntil - now) / 86400000);
+        if (daysLeft <= 3) {
+          setTimeout(function() {
+            showToast('⚠️ Підписка закінчується через ' + daysLeft + ' дн!');
+          }, 2000);
+        }
+      } else {
+        // Підписка закінчилась — вимикаємо онлайн
+        if (d.online) {
+          await set(ref(db, 'drivers/' + uid + '/online'), false);
+        }
+        // Показуємо через 1 сек щоб екран завантажився
+        setTimeout(function() {
+          showSubscriptionExpired(d, trialUntil, subUntil);
+        }, 1000);
+      }
+    } catch(e) {}
+  };
   // ===== КАБІНЕТ ВОДІЯ =====
   let _drvOnline = false;
   let _drvTimer = null;
@@ -1360,6 +1482,8 @@ function initMap() {
   window.initDriverScreen = async () => {
     const uid = window._currentUid;
     if (!uid) return;
+    // Перевіряємо підписку
+    if (window.checkSubOnInit) window.checkSubOnInit();
     try {
       const snap = await get(ref(db, 'drivers/' + uid));
       if (!snap.exists()) return;
@@ -1414,6 +1538,11 @@ function initMap() {
   };
 
   window.drvToggleOnline = async function() {
+    // Перевіряємо підписку перед увімкненням
+    if (!_drvOnline) {
+      var subOk = await checkDriverSubscription();
+      if (!subOk) return;
+    }
     _drvOnline = !_drvOnline;
     document.getElementById('drv-sw').className = 'bo-sw ' + (_drvOnline ? 'on' : 'off');
     document.getElementById('drv-status-dot').style.background = _drvOnline ? '#4cd964' : '#888';
