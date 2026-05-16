@@ -688,6 +688,17 @@ function initMap() {
   window._get = get;
   window._set = set;
 
+  // Таймаут — якщо Firebase не відповів за 8 сек
+  const _fbTimeout = setTimeout(() => {
+    const loader = document.getElementById('loader');
+    if (loader && loader.style.display !== 'none') {
+      loader.style.display = 'none';
+      showScreen('screen-role');
+      document.getElementById('fb-status').textContent = '⚠️ перевірте з'єднання';
+      document.getElementById('fb-status').style.color = '#f5a623';
+    }
+  }, 8000);
+
   // перевіряємо підключення
   document.getElementById('loaderText').textContent = 'Читаємо конфіг...';
 
@@ -740,6 +751,7 @@ function initMap() {
 
   // стан авторизації
   onAuthStateChanged(auth, user => {
+    clearTimeout(_fbTimeout);
     document.getElementById('loader').style.display = 'none';
     if (user) {
       window._currentUid = user.uid;
