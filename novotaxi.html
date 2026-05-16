@@ -1559,10 +1559,25 @@ function initMap() {
   function drvStartPolling() {
     if (_drvPollInterval) clearInterval(_drvPollInterval);
     _drvPollInterval = setInterval(async function() {
-      if (!_drvOnline || _drvCurrentOrder) return;
+      if (!_drvOnline) return;
       try {
         var snap = await get(ref(db, 'orders'));
         var orders = snap.val() || {};
+
+        // СПОЧАТКУ перевіряємо скасування поточного замовлення
+        if (_drvCurrentOrder) {
+          var curOrder = orders[_drvCurrentOrder];
+          if (curOrder && curOrder.status === 'cancelled') {
+            drvStopSound();
+            clearInterval(_drvTimer);
+            _drvDeclinedOrders.add(_drvCurrentOrder);
+            _drvCurrentOrder = null;
+            drvShowCancelledNotice();
+          }
+          return; // Є активне замовлення — нові не шукаємо
+        }
+
+        // Шукаємо нове замовлення тільки якщо немає активного
         var found = null;
         Object.entries(orders).forEach(function(entry) {
           var id = entry[0]; var o = entry[1];
@@ -1573,24 +1588,10 @@ function initMap() {
             found = [id, o];
           }
         });
-        if (found) {
-          drvShowOrder(found[0], found[1]);
-        }
+        if (found) drvShowOrder(found[0], found[1]);
 
-        // Перевіряємо чи поточне замовлення не скасовано клієнтом
-        if (_drvCurrentOrder) {
-          var curOrder = orders[_drvCurrentOrder];
-          if (curOrder && curOrder.status === 'cancelled') {
-            // Клієнт скасував — сповіщаємо водія
-            drvStopSound();
-            clearInterval(_drvTimer);
-            _drvDeclinedOrders.add(_drvCurrentOrder);
-            _drvCurrentOrder = null;
-            drvShowCancelledNotice();
-          }
-        }
       } catch(e) {}
-    }, 5000);
+    }, 3000);
   }
 
   var _drvSoundInterval = null;
