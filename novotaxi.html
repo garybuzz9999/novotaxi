@@ -1403,7 +1403,7 @@ function initMap() {
         if (status === 'no_drivers') {
           clearInterval(_searchTimerInt);
           hideSearchToast();
-          showClientNotification('Вільних машин немає. Спробуйте пізніше.');
+          showClientNotification('Вільних машин немає. Натисніть кнопку виклику — спробуємо знову.');
           return;
         }
       } catch(e) {}
@@ -1880,7 +1880,7 @@ function initMap() {
           if (clientId) {
             await set(ref(db, 'clients/' + clientId + '/notification'), {
               type: 'no_drivers',
-              message: 'Вільних машин немає. Спробуйте пізніше.',
+              message: 'Вільних машин немає. Натисніть кнопку виклику — спробуємо знову.',
               order_id: orderId,
               created_at: new Date().toISOString(),
               read: false
@@ -2106,7 +2106,7 @@ function initMap() {
       if (order.client_id) {
         await set(ref(db, 'clients/' + order.client_id + '/notification'), {
           type: 'driver_cancelled',
-          message: 'Водій скасував. Причина: ' + reason + '. Спробуйте викликати знову.',
+          message: 'Водій скасував. Причина: ' + reason + '. Натисніть кнопку виклику наступного таксі.',
           order_id: orderId,
           declined_driver_uid: window._currentUid,
           created_at: new Date().toISOString(),
