@@ -529,6 +529,16 @@
     </div>
   </div>
   <div class="bottom-panel">
+    <div id="order-status-bar" style="display:none;padding:10px 12px;background:rgba(245,200,66,.08);border-bottom:1px solid rgba(245,200,66,.2)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);animation:gps-blink 1s infinite;flex-shrink:0" id="order-status-dot"></div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--accent)" id="order-status-txt">Шукаємо водія...</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px" id="order-status-sub"></div>
+        </div>
+        <button onclick="cancelSearch()" id="order-cancel-btn" style="background:none;border:.5px solid #ff453a;color:#ff453a;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;flex-shrink:0">Скасувати</button>
+      </div>
+    </div>
     <div class="chips" id="typeChips">
       <div class="chip sel" onclick="selType(this,'std',30,5)">🚗 Стандарт <span class="chip-price">30+</span></div>
       <div class="chip" onclick="selType(this,'est',40,6)">🚙 Універсал <span class="chip-price">40+</span></div>
@@ -946,6 +956,7 @@ function initMap() {
     }
     showToast('🔍 Шукаємо водія...');
     startSearchTimer(orderId);
+    startOrderStatusListener(orderId);
   };
 
 
@@ -1440,6 +1451,7 @@ function initMap() {
       _searchOrderId = null;
     }
     showToast('Пошук скасовано');
+    stopOrderStatusListener();
   };
 
   // ===== ПЕРЕВІРКА ПІДПИСКИ ВОДІЯ =====
@@ -1928,6 +1940,111 @@ function initMap() {
     showScreen('screen-role');
     showToast('✅ Ви вийшли');
   };
+
+  // ===== СТАТУС ЗАМОВЛЕННЯ ДЛЯ КЛІЄНТА =====
+  var _statusPollInt = null;
+  var _statusLastState = null;
+
+  function startOrderStatusListener(orderId) {
+    _statusLastState = null;
+    var bar = document.getElementById('order-status-bar');
+    if (bar) bar.style.display = 'block';
+    clearInterval(_statusPollInt);
+    _statusPollInt = setInterval(async function() {
+      try {
+        var snap = await get(ref(db, 'orders/' + orderId));
+        if (!snap.exists()) { stopOrderStatusListener(); return; }
+        var order = snap.val();
+        var status = order.status;
+        if (status === _statusLastState) return;
+        _statusLastState = status;
+        updateOrderStatus(status, order);
+        if (status === 'completed' || status === 'cancelled' || status === 'no_drivers') {
+          setTimeout(stopOrderStatusListener, 5000);
+        }
+      } catch(e) {}
+    }, 3000);
+  }
+
+  function stopOrderStatusListener() {
+    clearInterval(_statusPollInt);
+    var bar = document.getElementById('order-status-bar');
+    if (bar) bar.style.display = 'none';
+  }
+
+  function playStatusSound(type) {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var freqs = type === 'arrived' ? [523, 659, 784] : [440, 550];
+      freqs.forEach(function(f, i) {
+        var osc = ctx.createOscillator();
+        var g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.frequency.value = f; osc.type = 'sine';
+        g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.2);
+        osc.start(ctx.currentTime + i * 0.2);
+        osc.stop(ctx.currentTime + i * 0.2 + 0.25);
+      });
+      if (navigator.vibrate) navigator.vibrate(type === 'arrived' ? [300,100,300,100,300] : [200,100,200]);
+    } catch(e) {}
+  }
+
+  function updateOrderStatus(status, order) {
+    var bar = document.getElementById('order-status-bar');
+    var txt = document.getElementById('order-status-txt');
+    var sub = document.getElementById('order-status-sub');
+    var dot = document.getElementById('order-status-dot');
+    var btn = document.getElementById('order-cancel-btn');
+    if (!bar || !txt) return;
+    bar.style.display = 'block';
+
+    if (status === 'accepted') {
+      playStatusSound('accepted');
+      dot.style.background = '#4cd964'; dot.style.animation = 'none';
+      txt.textContent = '✅ Водій виїхав до вас!';
+      txt.style.color = '#4cd964';
+      bar.style.background = 'rgba(76,217,100,.08)';
+      bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
+      // Час очікування
+      var eta = '~5-10';
+      if (order.client_lat && order.driver_lat) {
+        var dlat = (order.client_lat - order.driver_lat) * 111;
+        var dlng = ((order.client_lng || 0) - (order.driver_lng || 0)) * 111;
+        var dist = Math.sqrt(dlat*dlat + dlng*dlng);
+        eta = '~' + Math.max(2, Math.ceil(dist / 30 * 60));
+      }
+      var car = [order.vehicle_color, order.vehicle_model, order.vehicle_plate ? '· ' + order.vehicle_plate : ''].filter(Boolean).join(' ');
+      sub.textContent = 'Очікуйте ' + eta + ' хв' + (car ? ' · ' + car : '') + ' · Водій може зателефонувати';
+      if (btn) btn.style.display = 'block';
+
+    } else if (status === 'in_progress') {
+      dot.style.background = '#4da3ff'; dot.style.animation = 'gps-blink 1s infinite';
+      txt.textContent = '🛣️ Поїздка розпочата';
+      txt.style.color = '#4da3ff';
+      sub.textContent = 'Лічильник працює';
+      bar.style.background = 'rgba(77,163,255,.06)';
+      bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
+      if (btn) btn.style.display = 'none';
+
+    } else if (status === 'completed') {
+      dot.style.background = '#4cd964'; dot.style.animation = 'none';
+      txt.textContent = '🏁 Поїздку завершено!';
+      txt.style.color = '#4cd964';
+      sub.textContent = '';
+      if (btn) btn.style.display = 'none';
+
+    } else if (status === 'no_drivers') {
+      dot.style.background = '#ff453a'; dot.style.animation = 'none';
+      txt.textContent = '😔 Вільних машин немає';
+      txt.style.color = '#ff453a';
+      sub.textContent = 'Спробуйте пізніше';
+      if (btn) btn.style.display = 'none';
+
+    } else if (status === 'cancelled') {
+      bar.style.display = 'none';
+    }
+  }
 
 </script>
 
