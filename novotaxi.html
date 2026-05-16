@@ -2194,10 +2194,8 @@ function initMap() {
         var snap = await get(ref(db, 'clients/' + uid + '/notification'));
         if (!snap.exists()) return;
         var n = snap.val();
-        if (n && !n.read && n.type === 'no_drivers') {
-          // Показуємо повідомлення клієнту
+        if (n && !n.read && (n.type === 'no_drivers' || n.type === 'driver_cancelled')) {
           showClientNotification(n.message);
-          // Позначаємо як прочитане
           await set(ref(db, 'clients/' + uid + '/notification/read'), true);
         }
       } catch(e) {}
