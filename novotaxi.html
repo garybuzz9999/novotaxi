@@ -1786,17 +1786,14 @@ function initMap() {
     try {
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/status'), 'accepted');
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_id'), window._currentUid);
-      // Записуємо дані водія для клієнта
-      var dSnap = await get(ref(db, 'drivers/' + window._currentUid));
-      if (dSnap.exists()) {
-        var dd = dSnap.val();
+      var ds = await get(ref(db, 'drivers/' + window._currentUid));
+      if (ds.exists()) {
+        var dd = ds.val();
         await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_name'), dd.name || '');
-        await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_phone'), dd.phone || '');
         await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_model'), dd.vehicle_model || '');
         await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_color'), dd.vehicle_color || '');
         await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_plate'), dd.vehicle_plate || '');
-        if (dd.lat) await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_lat'), dd.lat);
-        if (dd.lng) await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_lng'), dd.lng);
+        if (dd.lat) { await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_lat'), dd.lat); await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_lng'), dd.lng); }
       }
     } catch(e) {}
     showToast('✅ Прийнято! Прокладаємо маршрут...');
@@ -1953,52 +1950,47 @@ function initMap() {
     showToast('✅ Ви вийшли');
   };
 
-  // ===== СТАТУС ЗАМОВЛЕННЯ ДЛЯ КЛІЄНТА =====
-  var _statusPollInt = null;
-  var _statusLastState = null;
+  // СТАТУС І КНОПКИ ВОДІЯ
+  var _statusInt = null;
+  var _statusLast = null;
 
   function startOrderStatusListener(orderId) {
-    _statusLastState = null;
+    _statusLast = null;
     var bar = document.getElementById('order-status-bar');
     if (bar) bar.style.display = 'block';
-    clearInterval(_statusPollInt);
-    _statusPollInt = setInterval(async function() {
+    clearInterval(_statusInt);
+    _statusInt = setInterval(async function() {
       try {
         var snap = await get(ref(db, 'orders/' + orderId));
-        if (!snap.exists()) { stopOrderStatusListener(); return; }
-        var order = snap.val();
-        var status = order.status;
-        if (status === _statusLastState) return;
-        _statusLastState = status;
-        updateOrderStatus(status, order);
-        if (status === 'completed' || status === 'cancelled' || status === 'no_drivers') {
-          setTimeout(stopOrderStatusListener, 5000);
+        if (!snap.exists()) { clearInterval(_statusInt); return; }
+        var o = snap.val();
+        if (o.status === _statusLast) return;
+        _statusLast = o.status;
+        updateOrderStatus(o.status, o);
+        if (o.status === 'completed' || o.status === 'cancelled' || o.status === 'no_drivers') {
+          setTimeout(function() { clearInterval(_statusInt); var b = document.getElementById('order-status-bar'); if(b) b.style.display='none'; }, 5000);
         }
       } catch(e) {}
     }, 3000);
   }
 
   function stopOrderStatusListener() {
-    clearInterval(_statusPollInt);
-    var bar = document.getElementById('order-status-bar');
-    if (bar) bar.style.display = 'none';
+    clearInterval(_statusInt);
+    var b = document.getElementById('order-status-bar');
+    if (b) b.style.display = 'none';
   }
 
-  function playStatusSound(type) {
+  function playBeep(hz1, hz2) {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var freqs = type === 'arrived' ? [523, 659, 784] : [440, 550];
-      freqs.forEach(function(f, i) {
-        var osc = ctx.createOscillator();
-        var g = ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination);
-        osc.frequency.value = f; osc.type = 'sine';
-        g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.2);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.2);
-        osc.start(ctx.currentTime + i * 0.2);
-        osc.stop(ctx.currentTime + i * 0.2 + 0.25);
+      [hz1, hz2].forEach(function(f, i) {
+        var o = ctx.createOscillator(); var g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = f; o.type = 'sine';
+        g.gain.setValueAtTime(0.4, ctx.currentTime + i*0.25);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.25 + 0.2);
+        o.start(ctx.currentTime + i*0.25); o.stop(ctx.currentTime + i*0.25 + 0.2);
       });
-      if (navigator.vibrate) navigator.vibrate(type === 'arrived' ? [300,100,300,100,300] : [200,100,200]);
     } catch(e) {}
   }
 
@@ -2010,99 +2002,72 @@ function initMap() {
     var btn = document.getElementById('order-cancel-btn');
     if (!bar || !txt) return;
     bar.style.display = 'block';
-
     if (status === 'accepted') {
-      playStatusSound('accepted');
+      playBeep(440, 550);
+      if (navigator.vibrate) navigator.vibrate([200,100,200]);
       dot.style.background = '#4cd964'; dot.style.animation = 'none';
-      txt.textContent = '✅ Водій виїхав до вас!';
-      txt.style.color = '#4cd964';
-      bar.style.background = 'rgba(76,217,100,.08)';
-      bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
-      // Час очікування
+      txt.textContent = 'Водій виїхав до вас!'; txt.style.color = '#4cd964';
+      bar.style.background = 'rgba(76,217,100,.08)'; bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
       var eta = '~5-10';
       if (order.client_lat && order.driver_lat) {
-        var dlat = (order.client_lat - order.driver_lat) * 111;
-        var dlng = ((order.client_lng || 0) - (order.driver_lng || 0)) * 111;
-        var dist = Math.sqrt(dlat*dlat + dlng*dlng);
-        eta = '~' + Math.max(2, Math.ceil(dist / 30 * 60));
+        var d = Math.sqrt(Math.pow((order.client_lat-order.driver_lat)*111,2)+Math.pow(((order.client_lng||0)-(order.driver_lng||0))*111,2));
+        eta = '~' + Math.max(2, Math.ceil(d/30*60));
       }
-      var car = [order.vehicle_color, order.vehicle_model, order.vehicle_plate ? '· ' + order.vehicle_plate : ''].filter(Boolean).join(' ');
+      var car = ((order.vehicle_color||'') + ' ' + (order.vehicle_model||'') + (order.vehicle_plate ? ' · '+order.vehicle_plate : '')).trim();
       sub.textContent = 'Очікуйте ' + eta + ' хв' + (car ? ' · ' + car : '') + ' · Водій може зателефонувати';
       if (btn) btn.style.display = 'block';
-
     } else if (status === 'in_progress') {
       dot.style.background = '#4da3ff'; dot.style.animation = 'gps-blink 1s infinite';
-      txt.textContent = '🛣️ Поїздка розпочата';
-      txt.style.color = '#4da3ff';
+      txt.textContent = 'Поїздка розпочата'; txt.style.color = '#4da3ff';
       sub.textContent = 'Лічильник працює';
-      bar.style.background = 'rgba(77,163,255,.06)';
-      bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
       if (btn) btn.style.display = 'none';
-
     } else if (status === 'completed') {
       dot.style.background = '#4cd964'; dot.style.animation = 'none';
-      txt.textContent = '🏁 Поїздку завершено!';
-      txt.style.color = '#4cd964';
+      txt.textContent = 'Поїздку завершено!'; txt.style.color = '#4cd964';
       sub.textContent = '';
       if (btn) btn.style.display = 'none';
-
     } else if (status === 'no_drivers') {
       dot.style.background = '#ff453a'; dot.style.animation = 'none';
-      txt.textContent = '😔 Вільних машин немає';
-      txt.style.color = '#ff453a';
+      txt.textContent = 'Вільних машин немає'; txt.style.color = '#ff453a';
       sub.textContent = 'Спробуйте пізніше';
       if (btn) btn.style.display = 'none';
-
     } else if (status === 'cancelled') {
       bar.style.display = 'none';
     }
   }
 
-  // ===== КНОПКИ ВОДІЯ НА КАРТІ =====
   window.drvNotOut = function() {
     var phone = window._lastOrderData && window._lastOrderData.client_phone;
     var name = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
-    var html = '<div style="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px">' +
-      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;border:1px solid #f5a623">' +
-      '<div style="font-size:44px;margin-bottom:10px">⏳</div>' +
-      '<div style="font-size:17px;font-weight:500;color:#fff;margin-bottom:8px">' + name + ' не виходить</div>' +
-      '<div style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.6">Зателефонуйте або зачекайте ще кілька хвилин</div>' +
-      (phone ? '<a href="tel:' + phone + '" style="display:block;background:#f5a623;color:#000;border-radius:12px;padding:13px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:10px">📞 Зателефонувати</a>' : '') +
-      '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#aaa;border-radius:12px;padding:11px;font-size:14px;cursor:pointer">Закрити</button>' +
-      '</div></div>';
-    document.body.insertAdjacentHTML('beforeend', html);
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px';
+    d.innerHTML = '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;border:1px solid #f5a623"><div style="font-size:44px;margin-bottom:10px">⏳</div><div style="font-size:17px;font-weight:500;color:#fff;margin-bottom:8px">' + name + ' не виходить</div><div style="font-size:13px;color:#888;margin-bottom:16px">Зателефонуйте або зачекайте</div>' + (phone ? '<a href="tel:'+phone+'" style="display:block;background:#f5a623;color:#000;border-radius:12px;padding:13px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:10px">📞 Зателефонувати</a>' : '') + '<button onclick="this.closest('div').parentElement.remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#aaa;border-radius:12px;padding:11px;font-size:14px;cursor:pointer">Закрити</button></div>';
+    document.body.appendChild(d);
   };
 
   window.drvCancelRide = function() {
-    var reasons = [
-      {icon:'🔧', text:'Поломка автомобіля'},
-      {icon:'🆘', text:'ДТП або надзвичайна ситуація'},
-      {icon:'⏳', text:'Клієнт не виходить'},
-      {icon:'📝', text:'Інша причина'}
-    ];
-    var btns = reasons.map(function(r) {
-      return '<button onclick="window._drvConfirm(\'' + r.text + '\')" style="width:100%;background:#242424;border:.5px solid #333;color:#fff;border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left;margin-bottom:8px">' + r.icon + ' ' + r.text + '</button>';
-    }).join('');
-    var html = '<div id="cancel-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px">' +
-      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;border:1px solid #ff453a">' +
-      '<div style="font-size:44px;text-align:center;margin-bottom:10px">🚫</div>' +
-      '<div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:16px">Причина відмови</div>' +
-      btns +
-      '<button onclick="document.getElementById('cancel-modal').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:11px;font-size:13px;cursor:pointer;margin-top:4px">Назад</button>' +
-      '</div></div>';
-    document.body.insertAdjacentHTML('beforeend', html);
+    var d = document.createElement('div');
+    d.id = 'drv-cancel-modal';
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px';
+    var reasons = ['🔧 Поломка автомобіля','🆘 ДТП або надзвичайна ситуація','⏳ Клієнт не виходить','📝 Інша причина'];
+    var btns = reasons.map(function(r,i) { return '<button id="drv-reason-'+i+'" style="width:100%;background:#242424;border:.5px solid #333;color:#fff;border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left;margin-bottom:8px">'+r+'</button>'; }).join('');
+    d.innerHTML = '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;border:1px solid #ff453a"><div style="font-size:44px;text-align:center;margin-bottom:10px">🚫</div><div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:16px">Причина відмови</div>'+btns+'<button id="drv-cancel-back" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:11px;font-size:13px;cursor:pointer;margin-top:4px">Назад</button></div>';
+    document.body.appendChild(d);
+    document.getElementById('drv-cancel-back').onclick = function() { d.remove(); };
+    reasons.forEach(function(r, i) {
+      document.getElementById('drv-reason-'+i).onclick = function() { window.drvConfirmCancel(r); };
+    });
   };
 
-  window._drvConfirm = async function(reason) {
-    var el = document.getElementById('cancel-modal');
-    if (el) el.remove();
+  window.drvConfirmCancel = async function(reason) {
+    var d = document.getElementById('drv-cancel-modal');
+    if (d) d.remove();
     var orderId = window._lastOrderId;
     var order = window._lastOrderData || {};
     try {
       await set(ref(db, 'orders/' + orderId + '/status'), 'cancelled');
       await set(ref(db, 'orders/' + orderId + '/cancel_reason'), reason);
       await set(ref(db, 'orders/' + orderId + '/cancelled_by'), 'driver');
-      // Повідомлення клієнту
       if (order.client_id) {
         await set(ref(db, 'clients/' + order.client_id + '/notification'), {
           type: 'driver_cancelled',
