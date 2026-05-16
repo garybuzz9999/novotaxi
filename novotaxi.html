@@ -529,6 +529,17 @@
     </div>
   </div>
   <div class="bottom-panel">
+    <!-- Статус замовлення (показується під час поїздки) -->
+    <div id="order-status-bar" style="display:none;padding:10px 12px;background:rgba(245,200,66,.08);border-bottom:1px solid rgba(245,200,66,.2)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);animation:gps-blink 1s infinite;flex-shrink:0" id="order-status-dot"></div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--accent)" id="order-status-txt">Шукаємо водія...</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px" id="order-status-sub"></div>
+        </div>
+        <button onclick="cancelSearch()" id="order-cancel-btn" style="background:none;border:.5px solid #ff453a;color:#ff453a;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;flex-shrink:0">Скасувати</button>
+      </div>
+    </div>
     <div class="chips" id="typeChips">
       <div class="chip sel" onclick="selType(this,'std',30,5)">🚗 Стандарт <span class="chip-price">30+</span></div>
       <div class="chip" onclick="selType(this,'est',40,6)">🚙 Універсал <span class="chip-price">40+</span></div>
@@ -946,6 +957,7 @@ function initMap() {
     }
     showToast('🔍 Шукаємо водія...');
     startSearchTimer(orderId);
+    if (window.startOrderStatusListener) window.startOrderStatusListener(orderId);
   };
 
 
@@ -1127,6 +1139,10 @@ function initMap() {
     document.getElementById('ride-phase1').style.display = 'none';
     document.getElementById('ride-phase2').style.display = 'block';
     document.getElementById('ride-header-txt').textContent = 'Поїздка';
+    // Оновлюємо статус замовлення
+    if (_rideOrderId) {
+      set(ref(db, 'orders/' + _rideOrderId + '/status'), 'in_progress');
+    }
     _rideSec = 0; _rideKm = 0;
     var _ridePrevLat = null;
     var _ridePrevLng = null;
@@ -1361,6 +1377,154 @@ function initMap() {
     }
   };
 
+
+  // ===== СТАТУС ЗАМОВЛЕННЯ ДЛЯ КЛІЄНТА =====
+  var _statusPollInt = null;
+  var _statusLastState = null;
+
+  window.startOrderStatusListener = function(orderId) {
+    _statusLastState = null;
+    document.getElementById('order-status-bar').style.display = 'block';
+    drvUpdateStatus('searching', null);
+
+    clearInterval(_statusPollInt);
+    _statusPollInt = setInterval(async function() {
+      try {
+        var snap = await get(ref(db, 'orders/' + orderId));
+        if (!snap.exists()) { stopOrderStatusListener(); return; }
+        var order = snap.val();
+        var status = order.status;
+
+        if (status === _statusLastState) return;
+        _statusLastState = status;
+
+        drvUpdateStatus(status, order);
+
+        if (status === 'completed' || status === 'cancelled' || status === 'no_drivers') {
+          setTimeout(function() {
+            stopOrderStatusListener();
+          }, 5000);
+        }
+      } catch(e) {}
+    }, 3000);
+  };
+
+  function stopOrderStatusListener() {
+    clearInterval(_statusPollInt);
+    document.getElementById('order-status-bar').style.display = 'none';
+    _statusLastState = null;
+  }
+
+  window.stopOrderStatusListener = stopOrderStatusListener;
+
+  function drvUpdateStatus(status, order) {
+    var bar = document.getElementById('order-status-bar');
+    var txt = document.getElementById('order-status-txt');
+    var sub = document.getElementById('order-status-sub');
+    var dot = document.getElementById('order-status-dot');
+    var cancelBtn = document.getElementById('order-cancel-btn');
+    if (!bar) return;
+
+    // Звук і вібрація при зміні статусу
+    function notifyClient(type) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (type === 'accepted') {
+          // Два висхідних — приємний сигнал
+          [0, 0.25].forEach(function(t) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(440, ctx.currentTime + t);
+            osc.frequency.linearRampToValueAtTime(660, ctx.currentTime + t + 0.2);
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.4, ctx.currentTime + t);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
+            osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.2);
+          });
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        } else if (type === 'arrived') {
+          // Три висхідних — водій приїхав!
+          [0, 0.2, 0.4].forEach(function(t) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 523 + t * 500;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.5, ctx.currentTime + t);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+            osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.25);
+          });
+          if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+        }
+      } catch(e) {}
+    }
+
+    bar.style.display = 'block';
+
+    if (status === 'searching') {
+      dot.style.background = '#f5c842';
+      txt.textContent = '🔍 Шукаємо найближчого водія...';
+      sub.textContent = '';
+      cancelBtn.style.display = 'block';
+      bar.style.background = 'rgba(245,200,66,.08)';
+      bar.style.borderBottomColor = 'rgba(245,200,66,.2)';
+      txt.style.color = 'var(--accent)';
+
+    } else if (status === 'accepted') {
+      notifyClient('accepted');
+      dot.style.background = '#4cd964';
+      dot.style.animation = 'none';
+      var driverName = (order && order.driver_name) || 'Водій';
+      txt.textContent = '✅ Замовлення прийнято!';
+      sub.textContent = 'Водій виїхав до вас';
+      cancelBtn.style.display = 'block';
+      bar.style.background = 'rgba(76,217,100,.08)';
+      bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
+      txt.style.color = '#4cd964';
+
+    } else if (status === 'driving') {
+      notifyClient('arrived');
+      dot.style.background = '#4da3ff';
+      dot.style.animation = 'none';
+      txt.textContent = '🚗 Водій прибув!';
+      sub.textContent = 'Виходьте — машина чекає';
+      cancelBtn.style.display = 'none';
+      bar.style.background = 'rgba(77,163,255,.08)';
+      bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
+      txt.style.color = '#4da3ff';
+
+    } else if (status === 'in_progress') {
+      dot.style.background = '#4da3ff';
+      dot.style.animation = 'gps-blink 1s infinite';
+      txt.textContent = '🛣️ Поїздка розпочата';
+      sub.textContent = 'Лічильник працює';
+      cancelBtn.style.display = 'none';
+      bar.style.background = 'rgba(77,163,255,.06)';
+      txt.style.color = '#4da3ff';
+
+    } else if (status === 'completed') {
+      dot.style.background = '#4cd964';
+      dot.style.animation = 'none';
+      txt.textContent = '🏁 Поїздку завершено!';
+      sub.textContent = '';
+      cancelBtn.style.display = 'none';
+      bar.style.background = 'rgba(76,217,100,.08)';
+      txt.style.color = '#4cd964';
+
+    } else if (status === 'no_drivers') {
+      dot.style.background = '#ff453a';
+      dot.style.animation = 'none';
+      txt.textContent = '😔 Вільних машин немає';
+      sub.textContent = 'Спробуйте пізніше';
+      cancelBtn.style.display = 'none';
+      bar.style.background = 'rgba(255,69,58,.08)';
+      txt.style.color = '#ff453a';
+
+    } else if (status === 'cancelled') {
+      bar.style.display = 'none';
+    }
+  }
   // ===== ТАЙМЕР ПОШУКУ ВОДІЯ =====
   var _searchTimerInt = null;
   var _searchTimerSec = 30;
@@ -1440,6 +1604,7 @@ function initMap() {
       _searchOrderId = null;
     }
     showToast('Пошук скасовано');
+    if (window.stopOrderStatusListener) window.stopOrderStatusListener();
   };
 
   // ===== ПЕРЕВІРКА ПІДПИСКИ ВОДІЯ =====
@@ -1772,8 +1937,15 @@ function initMap() {
     if (!_drvCurrentOrder) return;
     clearInterval(_drvTimer);
     try {
+      var drvSnap = await get(ref(db, 'drivers/' + window._currentUid));
+      var drvData = drvSnap.val() || {};
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/status'), 'accepted');
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_id'), window._currentUid);
+      await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_name'), drvData.name || 'Водій');
+      await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_phone'), drvData.phone || '');
+      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_model'), drvData.vehicle_model || '');
+      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_color'), drvData.vehicle_color || '');
+      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_plate'), drvData.vehicle_plate || '');
     } catch(e) {}
     showToast('✅ Прийнято! Прокладаємо маршрут...');
     drvStopSound();
