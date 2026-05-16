@@ -1081,10 +1081,10 @@ function initMap() {
         '<div style="font-size:44px;text-align:center;margin-bottom:12px">🚫</div>' +
         '<div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:8px">Причина відмови</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">' +
-          '<button onclick="drvConfirmCancel('Поломка автомобіля')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🔧 Поломка автомобіля</button>' +
-          '<button onclick="drvConfirmCancel('ДТП або надзвичайна ситуація')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🆘 ДТП або надзвичайна ситуація</button>' +
-          '<button onclick="drvConfirmCancel('Клієнт не виходить')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">⏳ Клієнт не виходить</button>' +
-          '<button onclick="drvConfirmCancel('Інша причина')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">📝 Інша причина</button>' +
+          '<button onclick="drvConfirmCancel(\'Поломка автомобіля\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🔧 Поломка автомобіля</button>' +
+          '<button onclick="drvConfirmCancel(\'ДТП або надзвичайна ситуація\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🆘 ДТП або надзвичайна ситуація</button>' +
+          '<button onclick="drvConfirmCancel(\'Клієнт не виходить\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">⏳ Клієнт не виходить</button>' +
+          '<button onclick="drvConfirmCancel(\'Інша причина\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">📝 Інша причина</button>' +
         '</div>' +
         '<button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:12px;font-size:13px;cursor:pointer">Назад</button>' +
       '</div>';
@@ -1548,9 +1548,21 @@ function initMap() {
       notifyClient('accepted');
       dot.style.background = '#4cd964';
       dot.style.animation = 'none';
-      var driverName = (order && order.driver_name) || 'Водій';
-      txt.textContent = '✅ Замовлення прийнято!';
-      sub.textContent = 'Водій виїхав до вас';
+      // Розраховуємо орієнтовний час (відстань / 30 км/год)
+      var etaMins = '~5-10';
+      if (order && order.client_lat && order.driver_lat) {
+        var R = 6371;
+        var dLat = (order.client_lat - order.driver_lat) * Math.PI/180;
+        var dLon = (order.client_lng - order.driver_lng) * Math.PI/180;
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(order.driver_lat*Math.PI/180)*Math.cos(order.client_lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+        var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        var mins = Math.ceil(dist / 30 * 60);
+        etaMins = '~' + Math.max(2, mins);
+      }
+      var model = (order && order.vehicle_model) ? ' · ' + order.vehicle_color + ' ' + order.vehicle_model : '';
+      var plate = (order && order.vehicle_plate) ? ' · ' + order.vehicle_plate : '';
+      txt.textContent = '✅ Водій виїхав до вас!';
+      sub.textContent = 'Очікуйте ' + etaMins + ' хв' + model + plate + ' · Водій може зателефонувати';
       cancelBtn.style.display = 'block';
       bar.style.background = 'rgba(76,217,100,.08)';
       bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
