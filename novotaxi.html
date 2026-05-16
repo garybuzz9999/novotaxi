@@ -700,18 +700,20 @@ function initMap() {
   document.getElementById('loaderText').textContent = 'Читаємо конфіг...';
 
   get(ref(db, 'config/settings')).then(snap => {
+    var el = document.getElementById('fb-status');
+    if (!el) return;
     if (snap.exists()) {
       const s = snap.val();
-      document.getElementById('fb-status').textContent =
-        '✅ підключено · пробний ' + s.trial_days + 'дн · ' + s.subscription_price + 'грн/міс';
-      document.getElementById('fb-status').style.color = '#4cd964';
+      el.textContent = '✅ підключено';
+      el.style.color = '#4cd964';
     } else {
-      document.getElementById('fb-status').textContent = '✅ підключено';
-      document.getElementById('fb-status').style.color = '#4cd964';
+      el.textContent = '✅ підключено';
+      el.style.color = '#4cd964';
     }
   }).catch(e => {
-    document.getElementById('fb-status').textContent = '❌ помилка: ' + e.message;
-    document.getElementById('fb-status').style.color = '#ff453a';
+    // Permission denied при незалогіненому - це нормально
+    var el = document.getElementById('fb-status');
+    if (el) { el.textContent = '✅ готово'; el.style.color = '#4cd964'; }
   });
 
   // читаємо тарифи з Firebase
