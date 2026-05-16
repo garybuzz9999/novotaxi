@@ -2062,8 +2062,7 @@ function initMap() {
     const pwd = document.getElementById('boPassword').value;
     if (!pwd) { showToast('Введіть пароль'); return; }
     try {
-      // Перевіряємо пароль в Firebase
-      const snap = await get(ref(db, 'config/admin_password'));
+      const snap = await window._get(window._ref(window._db, 'config/admin_password'));
       const correctPwd = snap.val();
       if (!correctPwd) {
         showToast('❌ Пароль адміна не налаштовано в Firebase');
