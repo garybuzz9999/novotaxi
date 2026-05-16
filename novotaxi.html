@@ -505,13 +505,7 @@
         <div class="ready-card-sub">Стандарт, Універсал, Бус — прямо з карти</div>
       </div>
     </div>
-    <div class="ready-card">
-      <div class="ready-card-icon">📦</div>
-      <div>
-        <div class="ready-card-title">Оголошення на доставку</div>
-        <div class="ready-card-sub">Холодильник, меблі — перший відгукнеться</div>
-      </div>
-    </div>
+
 
     <button class="btn-primary" onclick="showScreen('screen-main')">
       🚕 Замовити таксі
@@ -558,10 +552,7 @@
       <span class="nav-icon">🏠</span>
       <span class="nav-label">Головна</span>
     </button>
-    <button class="nav-btn" id="nav-announce" onclick="openAnnouncements()">
-      <span class="nav-icon">📢</span>
-      <span class="nav-label">Оголошення</span>
-    </button>
+
     <button class="nav-btn" onclick="openHistory()">
       <span class="nav-icon">🕐</span>
       <span class="nav-label">Історія</span>
@@ -1525,7 +1516,7 @@ function initMap() {
   };
 
   window.drvNav = function(id, btn) {
-    var pages = ['main','announce','history','profile'];
+    var pages = ['main','history','profile'];
     pages.forEach(function(p) {
       document.getElementById('drv-page-' + p).style.display = 'none';
       var tb = document.getElementById('drvt-' + p);
@@ -1533,7 +1524,7 @@ function initMap() {
     });
     document.getElementById('drv-page-' + id).style.display = 'block';
     btn.classList.add('on');
-    if (id === 'announce') drvLoadAnn();
+
     if (id === 'history') drvLoadHist();
   };
 
@@ -1743,41 +1734,6 @@ function initMap() {
     document.getElementById('drv-waiting').innerHTML = '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
   };
 
-  window.drvLoadAnn = async function() {
-    var el = document.getElementById('drv-ann-list');
-    try {
-      var snap = await get(ref(db, 'announcements'));
-      var all = snap.val() || {};
-      var open = Object.entries(all).filter(function(e) { return e[1].status === 'open'; });
-      if (open.length === 0) {
-        el.innerHTML = '<div style="text-align:center;padding:28px;color:var(--hint)"><div style="font-size:36px;margin-bottom:10px">📦</div>Оголошень немає</div>';
-        return;
-      }
-      var html = '';
-      open.forEach(function(entry) {
-        var id = entry[0]; var a = entry[1];
-        html += '<div style="background:var(--surface);border:1.5px solid #1D9E75;border-radius:12px;overflow:hidden;margin-bottom:10px">';
-        html += '<div style="padding:10px 14px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">';
-        html += '<span style="font-size:13px;font-weight:500;color:var(--text)">📢 Оголошення</span>';
-        html += '<span style="font-size:10px;background:rgba(29,158,117,.12);color:#1D9E75;padding:2px 8px;border-radius:20px">Доставка</span></div>';
-        html += '<div style="padding:12px 14px">';
-        html += '<div style="font-size:13px;color:var(--text);margin-bottom:8px;line-height:1.5">' + (a.text || '—') + '</div>';
-        html += '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">📍 ' + (a.from_address || '—') + ' → ' + (a.to_address || '—') + '</div>';
-        html += '<button onclick="drvTakeAnn(\'' + id + '\')" style="width:100%;background:#1D9E75;color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:500;cursor:pointer">✅ Взяти замовлення</button>';
-        html += '</div></div>';
-      });
-      el.innerHTML = html;
-    } catch(e) { el.innerHTML = '<div style="padding:14px;color:#ff453a">Помилка: ' + e.message + '</div>'; }
-  };
-
-  window.drvTakeAnn = async function(id) {
-    try {
-      await set(ref(db, 'announcements/' + id + '/status'), 'taken');
-      await set(ref(db, 'announcements/' + id + '/taken_by'), window._currentUid);
-      showToast('✅ Взято! Зв\'яжіться з клієнтом');
-      drvLoadAnn();
-    } catch(e) { showToast('Помилка: ' + e.message); }
-  };
 
   window.drvLoadHist = async function() {
     var uid = window._currentUid;
@@ -2045,27 +2001,6 @@ function initMap() {
     }
   };
 
-  // Надіслати оголошення
-  window.sendAnnouncement = async () => {
-    const text = document.getElementById('announce-text').value.trim();
-    const from = document.getElementById('announce-from').value.trim();
-    const to = document.getElementById('announce-to').value.trim();
-    if (!text) { showToast('Опишіть що треба перевезти'); return; }
-    const uid = window._currentUid;
-    if (!uid) { showToast('Помилка авторизації'); return; }
-    const id = 'ann_' + Date.now();
-    await window._set(window._ref(window._db, 'announcements/' + id), {
-      client_id: uid,
-      text, from_address: from, to_address: to,
-      status: 'open', taken_by: null,
-      created_at: new Date().toISOString()
-    });
-    showToast('✅ Оголошення надіслано водіям!');
-    document.getElementById('announce-text').value = '';
-    document.getElementById('announce-from').value = '';
-    document.getElementById('announce-to').value = '';
-    showScreen('screen-main');
-  };
 
   // ===== БЕК-ОФІС =====
   const BO_PASSWORD = 'novotaxi2026';
@@ -2799,7 +2734,7 @@ function initMap() {
   </div>
   <div style="display:flex;background:#1a1a1a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none">
     <button class="bo-tab on" id="drvt-main" onclick="drvNav('main',this)">Головна</button>
-    <button class="bo-tab" id="drvt-announce" onclick="drvNav('announce',this)">Оголошення</button>
+
     <button class="bo-tab" id="drvt-history" onclick="drvNav('history',this)">Історія</button>
     <button class="bo-tab" id="drvt-profile" onclick="drvNav('profile',this)">Профіль</button>
   </div>
@@ -2857,12 +2792,6 @@ function initMap() {
   </div>
 
   <!-- ОГОЛОШЕННЯ -->
-  <div id="drv-page-announce" style="display:none;padding:14px 16px">
-    <div class="bo-lbl">Оголошення клієнтів</div>
-    <div id="drv-ann-list"><div style="text-align:center;padding:28px;color:var(--hint)"><div style="font-size:36px;margin-bottom:10px">📦</div>Оголошень немає</div></div>
-    <button onclick="drvLoadAnn()" style="width:100%;background:var(--surface);border:.5px solid var(--border);color:var(--muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;margin-top:8px">🔄 Оновити</button>
-  </div>
-
   <!-- ІСТОРІЯ -->
   <div id="drv-page-history" style="display:none;padding:14px 16px">
     <div class="bo-lbl">Мої поїздки</div>
