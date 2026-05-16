@@ -417,6 +417,9 @@
       <div class="role-arrow">›</div>
     </div>
     <div style="text-align:center;margin-bottom:8px">
+      <button onclick="showScreen('screen-help')" style="background:none;border:.5px solid var(--border);color:var(--hint);border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer;margin-bottom:8px">❓ Як користуватись</button>
+    </div>
+    <div style="text-align:center;margin-bottom:8px">
       <button onclick="openBackoffice()" style="background:none;border:.5px solid var(--border);color:var(--hint);border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer">⚙️ Панель адміністратора</button>
     </div>
     <div class="role-footer">
@@ -3476,5 +3479,109 @@ function initMap() {
     });
   }
 </script>
+
+<!-- SCREEN: ЯК КОРИСТУВАТИСЬ -->
+<div class="screen" id="screen-help">
+  <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10">
+    <button onclick="showScreen('screen-role')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0">‹</button>
+    <span style="font-size:17px;font-weight:500;color:#fff">Як користуватись</span>
+  </div>
+  <div style="padding:16px;overflow-y:auto">
+
+    <!-- Клієнт -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:.5px solid var(--border)">
+      <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:12px">🙋 Для клієнта</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Увійдіть через Google</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Вкажіть свій номер телефону — водій зможе зателефонувати</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Виберіть тип авто</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Стандарт, Універсал, Бус пас., Бус вант.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Натисніть "Викликати"</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Система знайде найближчого водія. Очікуйте до 30 сек.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Стежте за статусом</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Панель зверху покаже: прийнято, виїхав, прибув. Буде звук і вібрація.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">5</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Оплата готівкою водієві</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Тариф фіксований — ціна відома заздалегідь</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Водій -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:.5px solid var(--border)">
+      <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:12px">🚗 Для водія</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Зареєструйтесь через Google</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Вкажіть авто, номер, колір і послуги які надаєте</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Увімкніть "Онлайн"</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Тільки онлайн водії отримують замовлення. GPS оновлюється автоматично.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Прийміть замовлення за 30 сек</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Буде звук кожні 5 сек і вібрація. Бачите ім'я клієнта і телефон.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Їдьте до клієнта</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Карта покаже де клієнт. Кнопка "Дзвонити" одразу набирає номер.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">5</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Запустіть лічильник</div><div style="font-size:12px;color:var(--muted);margin-top:2px">GPS рахує км + простій (< 5 км/год). Сума = посадка + км + хв простою.</div></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">6</div>
+          <div><div style="font-size:13px;font-weight:500;color:var(--text)">Завершіть поїздку</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Отримайте готівку → "Отримав" → поїздка записується в базу.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тарифи -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:.5px solid var(--border)">
+      <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:12px">💰 Тарифи</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border)">
+          <span style="color:var(--text)">🚗 Стандарт</span><span style="color:var(--muted)">30 грн + 5 грн/км</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border)">
+          <span style="color:var(--text)">🚙 Універсал</span><span style="color:var(--muted)">40 грн + 6 грн/км</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border)">
+          <span style="color:var(--text)">🚐 Бус пасажирський</span><span style="color:var(--muted)">60 грн + 8 грн/км</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:.5px solid var(--border)">
+          <span style="color:var(--text)">🚛 Бус вантажний</span><span style="color:var(--muted)">80 грн + 10 грн/км</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <span style="color:var(--text)">⏱️ Простій</span><span style="color:var(--muted)">1 грн/хв</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--hint);margin-top:8px">* Тарифи можуть змінюватись адміністратором</div>
+    </div>
+
+    <!-- Підписка -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:20px;border:.5px solid var(--border)">
+      <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:10px">🛡️ Підписка водія</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        <div>✅ 7 днів безкоштовно після реєстрації</div>
+        <div>💳 Далі 300 грн/місяць</div>
+        <div>📞 Оплата через адміністратора</div>
+        <div>⚠️ При закінченні підписки — автоматично офлайн</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
