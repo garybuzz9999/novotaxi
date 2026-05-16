@@ -2191,12 +2191,12 @@ function initMap() {
     if (!uid) return;
     setInterval(async function() {
       try {
-        var snap = await get(ref(db, 'clients/' + uid + '/notification'));
+        var snap = await window._get(window._ref(window._db, 'clients/' + uid + '/notification'));
         if (!snap.exists()) return;
         var n = snap.val();
         if (n && !n.read && (n.type === 'no_drivers' || n.type === 'driver_cancelled')) {
           showClientNotification(n.message);
-          await set(ref(db, 'clients/' + uid + '/notification/read'), true);
+          await window._set(window._ref(window._db, 'clients/' + uid + '/notification/read'), true);
         }
       } catch(e) {}
     }, 4000);
