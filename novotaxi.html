@@ -2725,6 +2725,7 @@ function initMap() {
 <!-- SCREEN: КАРТА МАРШРУТУ ДО КЛІЄНТА -->
 <div class="screen" id="screen-driver-map">
   <div style="background:var(--black);padding:11px 16px;display:flex;align-items:center;justify-content:space-between">
+    <button onclick="showScreen('screen-driver-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0;margin-right:8px">‹</button>
     <div style="font-size:16px;font-weight:500"><span style="color:#fff">Novo</span><span style="color:var(--accent)">Taxi</span></div>
     <div style="font-size:12px;color:rgba(255,255,255,.6)">Їдьте до клієнта</div>
   </div>
@@ -2739,7 +2740,7 @@ function initMap() {
   </div>
 
   <!-- Панель -->
-  <div style="padding:14px 16px">
+  <div style="padding:14px 16px;overflow-y:auto;max-height:calc(60vh - 44px)">
     <!-- Клієнт -->
     <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border-radius:12px;margin-bottom:12px">
       <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;color:var(--black);flex-shrink:0" id="drvmap-ava">МК</div>
