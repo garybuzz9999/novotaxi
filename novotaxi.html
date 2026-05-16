@@ -1131,10 +1131,13 @@ function initMap() {
     var _ridePrevLat = null;
     var _ridePrevLng = null;
     var _rideSpd = 0;
+    var _rideWaitSec = 0;  // секунди простою
+    var _ridePerWait = (window._tariffs && window._tariffs[window._lastOrderData && window._lastOrderData.vehicle_type] && window._tariffs[window._lastOrderData.vehicle_type].wait) || 1;
 
     // Функція оновлення UI
     function updateMeterUI() {
-      var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+      var waitMin = _rideWaitSec / 60;
+      var total = Math.round(_rideBoard + _rideKm * _ridePerKm + waitMin * _ridePerWait);
       var m = Math.floor(_rideSec / 60);
       var s = _rideSec % 60;
       document.getElementById('ride-price').textContent = total + ' грн';
@@ -1144,12 +1147,27 @@ function initMap() {
       document.getElementById('ride-km-lbl').textContent = _rideKm.toFixed(2) + ' км × ' + _ridePerKm + ' грн';
       document.getElementById('ride-km-val').textContent = Math.round(_rideKm * _ridePerKm) + ' грн';
       document.getElementById('ride-stop-txt').textContent = 'Приїхали — ' + total + ' грн';
+      // Показуємо простій якщо є
+      var waitEl = document.getElementById('ride-wait-row');
+      if (waitEl) {
+        if (_rideWaitSec >= 30) {
+          waitEl.style.display = 'flex';
+          document.getElementById('ride-wait-lbl').textContent = Math.floor(waitMin * 10) / 10 + ' хв × ' + _ridePerWait + ' грн';
+          document.getElementById('ride-wait-val').textContent = Math.round(waitMin * _ridePerWait) + ' грн';
+        } else {
+          waitEl.style.display = 'none';
+        }
+      }
     }
 
-    // Таймер секунд
+    // Таймер секунд + простій
     clearInterval(_rideMeterInt);
     _rideMeterInt = setInterval(function() {
       _rideSec++;
+      // Рахуємо простій якщо швидкість < 5 км/год
+      if (_rideSpd < 5) {
+        _rideWaitSec++;
+      }
       updateMeterUI();
     }, 1000);
 
@@ -1212,15 +1230,29 @@ function initMap() {
       window._rideGpsWatch = undefined;
     }
     var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+    var waitMin = (_rideWaitSec || 0) / 60;
+    var waitCost = Math.round(waitMin * (_ridePerWait || 1));
     var kmCost = Math.round(_rideKm * _ridePerKm);
+    var total = Math.round(_rideBoard + kmCost + waitCost);
     document.getElementById('ride-phase2').style.display = 'none';
     document.getElementById('ride-phase3').style.display = 'block';
     document.getElementById('ride-header-txt').textContent = 'Завершення';
     document.getElementById('ride-finish-price').textContent = total + ' грн';
     document.getElementById('ride-fin-board').textContent = _rideBoard + ' грн';
-    document.getElementById('ride-fin-km-lbl').textContent = _rideKm.toFixed(1) + ' км × ' + _ridePerKm + ' грн';
+    document.getElementById('ride-fin-km-lbl').textContent = _rideKm.toFixed(2) + ' км × ' + _ridePerKm + ' грн';
     document.getElementById('ride-fin-km-val').textContent = kmCost + ' грн';
     document.getElementById('ride-fin-total').textContent = total + ' грн';
+    // Додаємо рядок простою якщо є
+    var finWaitRow = document.getElementById('ride-fin-wait-row');
+    if (finWaitRow) {
+      if (waitCost > 0) {
+        finWaitRow.style.display = 'flex';
+        document.getElementById('ride-fin-wait-lbl').textContent = (Math.floor(waitMin*10)/10) + ' хв × ' + (_ridePerWait||1) + ' грн';
+        document.getElementById('ride-fin-wait-val').textContent = waitCost + ' грн';
+      } else {
+        finWaitRow.style.display = 'none';
+      }
+    }
     document.getElementById('ride-finish-dest').textContent = _rideAddr || 'По місту';
     document.getElementById('ride-confirm-txt').textContent = 'Отримав ' + total + ' грн — закрити поїздку';
   };
@@ -2688,6 +2720,9 @@ function initMap() {
       </div>
       <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:.5px solid rgba(255,255,255,.08)">
         <span style="color:rgba(255,255,255,.4)" id="ride-fin-km-lbl">0 км × 5 грн</span><span style="color:rgba(255,255,255,.8);font-weight:500" id="ride-fin-km-val">0 грн</span>
+      </div>
+      <div id="ride-fin-wait-row" style="display:none;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:.5px solid rgba(255,255,255,.08)">
+        <span style="color:rgba(255,100,100,.6)" id="ride-fin-wait-lbl">0 хв × 1 грн</span><span style="color:rgba(255,100,100,.8);font-weight:500" id="ride-fin-wait-val">0 грн</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:500;padding-top:10px;margin-top:4px">
         <span style="color:rgba(255,255,255,.6)">Разом</span><span style="color:var(--accent)" id="ride-fin-total">30 грн</span>
