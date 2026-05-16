@@ -1339,6 +1339,7 @@ function initMap() {
       try {
         await set(ref(db, 'orders/' + _searchOrderId + '/status'), 'cancelled');
       } catch(e) {}
+      _searchOrderId = null;
     }
     showToast('Пошук скасовано');
   };
@@ -1572,7 +1573,22 @@ function initMap() {
             found = [id, o];
           }
         });
-        if (found) drvShowOrder(found[0], found[1]);
+        if (found) {
+          drvShowOrder(found[0], found[1]);
+        }
+
+        // Перевіряємо чи поточне замовлення не скасовано клієнтом
+        if (_drvCurrentOrder) {
+          var curOrder = orders[_drvCurrentOrder];
+          if (curOrder && curOrder.status === 'cancelled') {
+            // Клієнт скасував — сповіщаємо водія
+            drvStopSound();
+            clearInterval(_drvTimer);
+            _drvDeclinedOrders.add(_drvCurrentOrder);
+            _drvCurrentOrder = null;
+            drvShowCancelledNotice();
+          }
+        }
       } catch(e) {}
     }, 5000);
   }
@@ -1671,6 +1687,39 @@ function initMap() {
       window.showDriverRouteMap(window._lastOrderData || {});
     }
   };
+
+  function drvShowCancelledNotice() {
+    // Звук — два коротких низьких сигнали
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.4].forEach(function(t) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 350;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.5, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.3);
+      });
+    } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+
+    // Показуємо повідомлення
+    document.getElementById('drv-order-card').style.display = 'none';
+    document.getElementById('drv-waiting').style.display = 'block';
+    document.getElementById('drv-waiting').innerHTML =
+      '<div style="font-size:40px;margin-bottom:12px">❌</div>' +
+      '<div style="font-size:16px;font-weight:500;color:#ff453a;margin-bottom:6px">Клієнт скасував замовлення</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Очікуємо нових замовлень...</div>';
+
+    // Через 4 сек повертаємось до звичайного екрану
+    setTimeout(function() {
+      document.getElementById('drv-waiting').innerHTML =
+        '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
+    }, 4000);
+  }
 
   window.drvDecline = async function() {
     clearInterval(_drvTimer);
