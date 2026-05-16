@@ -2,8 +2,11 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>NovoTaxi</title>
+<title>NovoTaxi v2.1</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root {
@@ -2053,22 +2056,32 @@ function initMap() {
 
 
   // ===== БЕК-ОФІС =====
-  const BO_PASSWORD = 'novotaxi2026';
-
   window.openBackoffice = () => showScreen('screen-bo-login');
 
-  window.boLogin = () => {
+  window.boLogin = async () => {
     const pwd = document.getElementById('boPassword').value;
-    if (pwd === BO_PASSWORD) {
-      showScreen('screen-backoffice');
-      boRefreshStats();
-      boLoadDrivers();
-      boLoadTariffs();
-      boLoadSettings();
-      boLoadCodes();
-      boLoadOrders();
-    } else {
-      showToast('❌ Невірний пароль');
+    if (!pwd) { showToast('Введіть пароль'); return; }
+    try {
+      // Перевіряємо пароль в Firebase
+      const snap = await get(ref(db, 'config/admin_password'));
+      const correctPwd = snap.val();
+      if (!correctPwd) {
+        showToast('❌ Пароль адміна не налаштовано в Firebase');
+        return;
+      }
+      if (pwd === correctPwd) {
+        showScreen('screen-backoffice');
+        boRefreshStats();
+        boLoadDrivers();
+        boLoadTariffs();
+        boLoadSettings();
+        boLoadCodes();
+        boLoadOrders();
+      } else {
+        showToast('❌ Невірний пароль');
+      }
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
     }
   };
 
