@@ -2,6 +2,12 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="/novotaxi/manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NovoTaxi">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -3460,5 +3466,15 @@ function initMap() {
 
 </div>
 
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/novotaxi/sw.js')
+        .then(function(reg) { console.log('SW registered'); })
+        .catch(function(err) { console.log('SW error:', err); });
+    });
+  }
+</script>
 </body>
 </html>
