@@ -946,10 +946,12 @@ function initMap() {
     });
 
     if (queueUids.length === 0) {
+      playClientSound();
       showToast('😔 Немає доступних водіїв');
       return;
     }
     showToast('🔍 Шукаємо водія...');
+    startSearchTimer(orderId);
   };
 
 
@@ -1268,6 +1270,86 @@ function initMap() {
     } catch(e) {
       showToast('Помилка: ' + e.message);
     }
+  };
+
+  // ===== ТАЙМЕР ПОШУКУ ВОДІЯ =====
+  var _searchTimerInt = null;
+  var _searchTimerSec = 30;
+  var _searchOrderId = null;
+
+  function startSearchTimer(orderId) {
+    _searchOrderId = orderId;
+    _searchTimerSec = 30;
+    clearInterval(_searchTimerInt);
+
+    // Показуємо тост з таймером
+    updateSearchToast();
+
+    _searchTimerInt = setInterval(async function() {
+      _searchTimerSec--;
+      updateSearchToast();
+
+      // Перевіряємо чи знайшли водія
+      try {
+        var snap = await get(ref(db, 'orders/' + orderId + '/status'));
+        var status = snap.val();
+        if (status === 'accepted' || status === 'completed') {
+          clearInterval(_searchTimerInt);
+          showToast('✅ Водій знайдений! Їде до вас.');
+          hideSearchToast();
+          return;
+        }
+        if (status === 'no_drivers') {
+          clearInterval(_searchTimerInt);
+          hideSearchToast();
+          showClientNotification('Вільних машин немає. Спробуйте пізніше.');
+          return;
+        }
+      } catch(e) {}
+
+      if (_searchTimerSec <= 0) {
+        clearInterval(_searchTimerInt);
+        hideSearchToast();
+        // Скасовуємо замовлення
+        try {
+          await set(ref(db, 'orders/' + orderId + '/status'), 'no_drivers');
+        } catch(e) {}
+        showClientNotification('Час пошуку вичерпано. Спробуйте ще раз.');
+      }
+    }, 1000);
+  }
+
+  function updateSearchToast() {
+    var pill = document.getElementById('search-pill');
+    if (!pill) {
+      // Створюємо пілюлю пошуку
+      pill = document.createElement('div');
+      pill.id = 'search-pill';
+      pill.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(15,15,15,.95);color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:500;z-index:200;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(245,200,66,.3);white-space:nowrap';
+      document.body.appendChild(pill);
+    }
+    var color = _searchTimerSec > 10 ? '#f5c842' : '#ff453a';
+    pill.innerHTML =
+      '<span style="width:10px;height:10px;border-radius:50%;background:' + color + ';animation:gps-blink 1s infinite;flex-shrink:0"></span>' +
+      '<span>Шукаємо водія...</span>' +
+      '<span style="background:rgba(255,255,255,.1);padding:3px 10px;border-radius:20px;font-size:13px;color:' + color + '">' + _searchTimerSec + ' сек</span>' +
+      '<button onclick="cancelSearch()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;padding:0;margin-left:4px">✕</button>';
+  }
+
+  function hideSearchToast() {
+    var pill = document.getElementById('search-pill');
+    if (pill) pill.remove();
+  }
+
+  window.cancelSearch = async function() {
+    clearInterval(_searchTimerInt);
+    hideSearchToast();
+    if (_searchOrderId) {
+      try {
+        await set(ref(db, 'orders/' + _searchOrderId + '/status'), 'cancelled');
+      } catch(e) {}
+    }
+    showToast('Пошук скасовано');
   };
   // ===== КАБІНЕТ ВОДІЯ =====
   let _drvOnline = false;
