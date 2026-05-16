@@ -1,0 +1,25 @@
+{
+  "name": "NovoTaxi",
+  "short_name": "NovoTaxi",
+  "description": "Замовлення таксі, доставка, кур'єр — Новоград",
+  "start_url": "/novotaxi/novotaxi.html",
+  "display": "standalone",
+  "theme_color": "#0f0f0f",
+  "background_color": "#1a1a1a",
+  "orientation": "portrait",
+  "lang": "uk",
+  "icons": [
+    {
+      "src": "/novotaxi/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/novotaxi/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
