@@ -1885,24 +1885,7 @@ function initMap() {
     if (window.loadHistory) window.loadHistory();
   }
 
-  function openAnnouncements() {
-    // Перевіряємо кількість поїздок
-    if (window._get && window._ref && window._db) {
-      const uid = window._currentUid;
-      if (!uid) { showToast('Спочатку увійдіть'); return; }
-      window._get(window._ref(window._db, 'clients/' + uid + '/trips_count')).then(snap => {
-        const trips = snap.val() || 0;
-        if (trips >= 25) {
-          showScreen('screen-announcements');
-        } else {
-          const left = 25 - trips;
-          showToast('🔒 Оголошення відкриються після ' + left + ' поїздок (ще ' + left + ' з 25)');
-        }
-      });
-    } else {
-      showToast('🔒 Оголошення відкриються після 25 поїздок');
-    }
-  }
+
 
 
 
@@ -2447,32 +2430,6 @@ function initMap() {
       <div style="font-size:48px;margin-bottom:14px">🚕</div>
       <div style="font-size:17px;font-weight:500;color:var(--text);margin-bottom:8px">У вас ще немає поїздок</div>
       <div style="font-size:14px;color:var(--muted);line-height:1.6">З'являться поїздки —<br>з'явиться історія</div>
-    </div>
-  </div>
-</div>
-
-<!-- SCREEN: ОГОЛОШЕННЯ -->
-<div class="screen" id="screen-announcements">
-  <div style="background:var(--black);padding:12px 16px;display:flex;align-items:center;gap:12px">
-    <button onclick="showScreen('screen-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0">‹</button>
-    <span style="font-size:17px;font-weight:500;color:#fff">📢 Оголошення</span>
-  </div>
-  <div style="padding:20px 16px">
-    <div style="background:var(--surface);border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Що потрібно перевезти?</div>
-      <textarea id="announce-text" placeholder="Опишіть що треба — холодильник, меблі, переїзд..." 
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);outline:none;resize:none;min-height:80px;font-family:inherit"></textarea>
-      <input id="announce-from" type="text" placeholder="Звідки"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);outline:none;margin-top:8px">
-      <input id="announce-to" type="text" placeholder="Куди"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:14px;color:var(--text);outline:none;margin-top:8px">
-      <button onclick="sendAnnouncement()" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:500;cursor:pointer;margin-top:10px">
-        📤 Надіслати оголошення
-      </button>
-    </div>
-    <div style="font-size:12px;color:var(--hint);text-align:center;line-height:1.6">
-      Оголошення отримають всі водії-кур'єри в радіусі 15 км.<br>
-      Перший хто прийме — зв'яжеться з вами.
     </div>
   </div>
 </div>
