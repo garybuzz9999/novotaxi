@@ -1052,6 +1052,79 @@ function initMap() {
     }
     window.open(url, '_blank');
   };
+
+  // Пасажир не виходить — дзвінок + повідомлення
+  window.drvPassengerNotOut = function() {
+    var phone = window._lastOrderData && window._lastOrderData.client_phone;
+    var name = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
+    // Показуємо модальне вікно
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML =
+      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;border:1px solid #f5a623">' +
+        '<div style="font-size:44px;margin-bottom:12px">⏳</div>' +
+        '<div style="font-size:18px;font-weight:500;color:#fff;margin-bottom:8px">' + name + ' не виходить</div>' +
+        '<div style="font-size:13px;color:#888;margin-bottom:18px;line-height:1.6">Зателефонуйте клієнту або зачекайте ще кілька хвилин</div>' +
+        (phone ? '<a href="tel:' + phone + '" style="display:block;background:#f5a623;color:#000;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;margin-bottom:10px">📞 Зателефонувати ' + name + '</a>' : '') +
+        '<button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#aaa;border-radius:12px;padding:12px;font-size:14px;cursor:pointer">Закрити</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+  };
+
+  // Відмовитись від замовлення — ЧП або поломка
+  window.drvCancelOrder = function() {
+    var orderId = window._lastOrderId;
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML =
+      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;border:1px solid #ff453a">' +
+        '<div style="font-size:44px;text-align:center;margin-bottom:12px">🚫</div>' +
+        '<div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:8px">Причина відмови</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">' +
+          '<button onclick="drvConfirmCancel('Поломка автомобіля')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🔧 Поломка автомобіля</button>' +
+          '<button onclick="drvConfirmCancel('ДТП або надзвичайна ситуація')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🆘 ДТП або надзвичайна ситуація</button>' +
+          '<button onclick="drvConfirmCancel('Клієнт не виходить')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">⏳ Клієнт не виходить</button>' +
+          '<button onclick="drvConfirmCancel('Інша причина')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">📝 Інша причина</button>' +
+        '</div>' +
+        '<button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:12px;font-size:13px;cursor:pointer">Назад</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+  };
+
+  window.drvConfirmCancel = async function(reason) {
+    var orderId = window._lastOrderId;
+    var order = window._lastOrderData || {};
+    document.querySelectorAll('div[style*="position:fixed"]').forEach(function(m) { m.remove(); });
+
+    try {
+      // Статус cancelled + причина
+      await set(ref(db, 'orders/' + orderId + '/status'), 'cancelled');
+      await set(ref(db, 'orders/' + orderId + '/cancel_reason'), reason);
+      await set(ref(db, 'orders/' + orderId + '/cancelled_by'), 'driver');
+
+      // Повідомлення клієнту
+      var clientId = order.client_id;
+      if (clientId) {
+        await set(ref(db, 'clients/' + clientId + '/notification'), {
+          type: 'driver_cancelled',
+          message: 'Водій скасував замовлення. Причина: ' + reason,
+          order_id: orderId,
+          created_at: new Date().toISOString(),
+          read: false
+        });
+      }
+    } catch(e) {}
+
+    drvStopSound();
+    clearInterval(_drvTimer);
+    _drvCurrentOrder = null;
+    window._lastOrderId = null;
+    window._lastOrderData = null;
+
+    showToast('Замовлення скасовано. Клієнт отримає сповіщення.');
+    showScreen('screen-driver-main');
+    document.getElementById('drv-waiting').innerHTML = '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
+  };
   // ===== ПОЇЗДКА ВОДІЯ =====
   var _rideMeterInt = null;
   var _rideSec = 0;
@@ -2174,11 +2247,11 @@ function initMap() {
         var snap = await get(ref(db, 'clients/' + uid + '/notification'));
         if (!snap.exists()) return;
         var n = snap.val();
-        if (n && !n.read && n.type === 'no_drivers') {
-          // Показуємо повідомлення клієнту
-          showClientNotification(n.message);
-          // Позначаємо як прочитане
-          await set(ref(db, 'clients/' + uid + '/notification/read'), true);
+        if (n && !n.read) {
+          if (n.type === 'no_drivers' || n.type === 'driver_cancelled') {
+            showClientNotification(n.message);
+            await set(ref(db, 'clients/' + uid + '/notification/read'), true);
+          }
         }
       } catch(e) {}
     }, 4000);
@@ -2733,12 +2806,22 @@ function initMap() {
     </div>
 
     <!-- Кнопки -->
-    <div style="display:flex;gap:8px">
+    <!-- Головні кнопки -->
+    <div style="display:flex;gap:8px;margin-bottom:8px">
       <button onclick="drvOpenExternalMaps()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">
-        🗺️ Google Maps
+        🗺️ Maps
       </button>
       <button onclick="passengerIn()" style="flex:2;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer">
         🧑 Пасажир сів →
+      </button>
+    </div>
+    <!-- Додаткові кнопки -->
+    <div style="display:flex;gap:8px">
+      <button onclick="drvPassengerNotOut()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:12px;border:.5px solid #f5a623;background:rgba(245,166,35,.08);color:#f5a623;font-size:13px;cursor:pointer">
+        ⏳ Не виходить
+      </button>
+      <button onclick="drvCancelOrder()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:12px;border:.5px solid #ff453a;background:rgba(255,69,58,.08);color:#ff453a;font-size:13px;cursor:pointer">
+        🚫 Відмовитись
       </button>
     </div>
   </div>
