@@ -2393,10 +2393,12 @@ function initMap() {
     const pwd = document.getElementById('boPassword').value;
     if (!pwd) { showToast('Введіть пароль'); return; }
     try {
-      const snap = await window._get(window._ref(window._db, 'config/admin_password'));
-      const correctPwd = snap.val();
+      // Читаємо напряму через REST API — не потребує авторизації
+      const dbUrl = 'https://novotaxi-fcb7f-default-rtdb.europe-west1.firebasedatabase.app/config/admin_password.json';
+      const resp = await fetch(dbUrl);
+      const correctPwd = await resp.json();
       if (!correctPwd) {
-        showToast('❌ Пароль адміна не налаштовано в Firebase');
+        showToast('❌ Пароль не налаштовано');
         return;
       }
       if (pwd === correctPwd) {
