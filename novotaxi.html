@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>NovoTaxi v2.1</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root {
     --black: #0f0f0f;
@@ -529,7 +529,6 @@
     </div>
   </div>
   <div class="bottom-panel">
-    <!-- Статус замовлення (показується під час поїздки) -->
     <div id="order-status-bar" style="display:none;padding:10px 12px;background:rgba(245,200,66,.08);border-bottom:1px solid rgba(245,200,66,.2)">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);animation:gps-blink 1s infinite;flex-shrink:0" id="order-status-dot"></div>
@@ -612,7 +611,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // Ініціалізація карти після завантаження
 function initMap() {
@@ -682,20 +681,16 @@ function initMap() {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  // Робимо db/ref/get/set глобальними для бек-офісу
   window._db = db;
   window._ref = ref;
   window._get = get;
   window._set = set;
 
-  // Таймаут — якщо Firebase не відповів за 8 сек
   const _fbTimeout = setTimeout(() => {
     const loader = document.getElementById('loader');
     if (loader && loader.style.display !== 'none') {
       loader.style.display = 'none';
       showScreen('screen-role');
-      document.getElementById('fb-status').textContent = '⚠️ перевірте з'єднання';
-      document.getElementById('fb-status').style.color = '#f5a623';
     }
   }, 8000);
 
@@ -1064,79 +1059,6 @@ function initMap() {
     }
     window.open(url, '_blank');
   };
-
-  // Пасажир не виходить — дзвінок + повідомлення
-  window.drvPassengerNotOut = function() {
-    var phone = window._lastOrderData && window._lastOrderData.client_phone;
-    var name = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
-    // Показуємо модальне вікно
-    var modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
-    modal.innerHTML =
-      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;border:1px solid #f5a623">' +
-        '<div style="font-size:44px;margin-bottom:12px">⏳</div>' +
-        '<div style="font-size:18px;font-weight:500;color:#fff;margin-bottom:8px">' + name + ' не виходить</div>' +
-        '<div style="font-size:13px;color:#888;margin-bottom:18px;line-height:1.6">Зателефонуйте клієнту або зачекайте ще кілька хвилин</div>' +
-        (phone ? '<a href="tel:' + phone + '" style="display:block;background:#f5a623;color:#000;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;margin-bottom:10px">📞 Зателефонувати ' + name + '</a>' : '') +
-        '<button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#aaa;border-radius:12px;padding:12px;font-size:14px;cursor:pointer">Закрити</button>' +
-      '</div>';
-    document.body.appendChild(modal);
-  };
-
-  // Відмовитись від замовлення — ЧП або поломка
-  window.drvCancelOrder = function() {
-    var orderId = window._lastOrderId;
-    var modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
-    modal.innerHTML =
-      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;border:1px solid #ff453a">' +
-        '<div style="font-size:44px;text-align:center;margin-bottom:12px">🚫</div>' +
-        '<div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:8px">Причина відмови</div>' +
-        '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">' +
-          '<button onclick="drvConfirmCancel(\'Поломка автомобіля\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🔧 Поломка автомобіля</button>' +
-          '<button onclick="drvConfirmCancel(\'ДТП або надзвичайна ситуація\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">🆘 ДТП або надзвичайна ситуація</button>' +
-          '<button onclick="drvConfirmCancel(\'Клієнт не виходить\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">⏳ Клієнт не виходить</button>' +
-          '<button onclick="drvConfirmCancel(\'Інша причина\')" style="width:100%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left">📝 Інша причина</button>' +
-        '</div>' +
-        '<button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:12px;font-size:13px;cursor:pointer">Назад</button>' +
-      '</div>';
-    document.body.appendChild(modal);
-  };
-
-  window.drvConfirmCancel = async function(reason) {
-    var orderId = window._lastOrderId;
-    var order = window._lastOrderData || {};
-    document.querySelectorAll('div[style*="position:fixed"]').forEach(function(m) { m.remove(); });
-
-    try {
-      // Статус cancelled + причина
-      await set(ref(db, 'orders/' + orderId + '/status'), 'cancelled');
-      await set(ref(db, 'orders/' + orderId + '/cancel_reason'), reason);
-      await set(ref(db, 'orders/' + orderId + '/cancelled_by'), 'driver');
-
-      // Повідомлення клієнту
-      var clientId = order.client_id;
-      if (clientId) {
-        await set(ref(db, 'clients/' + clientId + '/notification'), {
-          type: 'driver_cancelled',
-          message: 'Водій скасував замовлення. Причина: ' + reason,
-          order_id: orderId,
-          created_at: new Date().toISOString(),
-          read: false
-        });
-      }
-    } catch(e) {}
-
-    drvStopSound();
-    clearInterval(_drvTimer);
-    _drvCurrentOrder = null;
-    window._lastOrderId = null;
-    window._lastOrderData = null;
-
-    showToast('Замовлення скасовано. Клієнт отримає сповіщення.');
-    showScreen('screen-driver-main');
-    document.getElementById('drv-waiting').innerHTML = '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
-  };
   // ===== ПОЇЗДКА ВОДІЯ =====
   var _rideMeterInt = null;
   var _rideSec = 0;
@@ -1224,10 +1146,6 @@ function initMap() {
     document.getElementById('ride-phase1').style.display = 'none';
     document.getElementById('ride-phase2').style.display = 'block';
     document.getElementById('ride-header-txt').textContent = 'Поїздка';
-    // Оновлюємо статус замовлення
-    if (_rideOrderId) {
-      set(ref(db, 'orders/' + _rideOrderId + '/status'), 'in_progress');
-    }
     _rideSec = 0; _rideKm = 0;
     var _ridePrevLat = null;
     var _ridePrevLng = null;
@@ -1462,166 +1380,6 @@ function initMap() {
     }
   };
 
-
-  // ===== СТАТУС ЗАМОВЛЕННЯ ДЛЯ КЛІЄНТА =====
-  var _statusPollInt = null;
-  var _statusLastState = null;
-
-  window.startOrderStatusListener = function(orderId) {
-    _statusLastState = null;
-    document.getElementById('order-status-bar').style.display = 'block';
-    drvUpdateStatus('searching', null);
-
-    clearInterval(_statusPollInt);
-    _statusPollInt = setInterval(async function() {
-      try {
-        var snap = await get(ref(db, 'orders/' + orderId));
-        if (!snap.exists()) { stopOrderStatusListener(); return; }
-        var order = snap.val();
-        var status = order.status;
-
-        if (status === _statusLastState) return;
-        _statusLastState = status;
-
-        drvUpdateStatus(status, order);
-
-        if (status === 'completed' || status === 'cancelled' || status === 'no_drivers') {
-          setTimeout(function() {
-            stopOrderStatusListener();
-          }, 5000);
-        }
-      } catch(e) {}
-    }, 3000);
-  };
-
-  function stopOrderStatusListener() {
-    clearInterval(_statusPollInt);
-    document.getElementById('order-status-bar').style.display = 'none';
-    _statusLastState = null;
-  }
-
-  window.stopOrderStatusListener = stopOrderStatusListener;
-
-  function drvUpdateStatus(status, order) {
-    var bar = document.getElementById('order-status-bar');
-    var txt = document.getElementById('order-status-txt');
-    var sub = document.getElementById('order-status-sub');
-    var dot = document.getElementById('order-status-dot');
-    var cancelBtn = document.getElementById('order-cancel-btn');
-    if (!bar) return;
-
-    // Звук і вібрація при зміні статусу
-    function notifyClient(type) {
-      try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (type === 'accepted') {
-          // Два висхідних — приємний сигнал
-          [0, 0.25].forEach(function(t) {
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(440, ctx.currentTime + t);
-            osc.frequency.linearRampToValueAtTime(660, ctx.currentTime + t + 0.2);
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.4, ctx.currentTime + t);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
-            osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.2);
-          });
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        } else if (type === 'arrived') {
-          // Три висхідних — водій приїхав!
-          [0, 0.2, 0.4].forEach(function(t) {
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 523 + t * 500;
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.5, ctx.currentTime + t);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
-            osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.25);
-          });
-          if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-        }
-      } catch(e) {}
-    }
-
-    bar.style.display = 'block';
-
-    if (status === 'searching') {
-      dot.style.background = '#f5c842';
-      txt.textContent = '🔍 Шукаємо найближчого водія...';
-      sub.textContent = '';
-      cancelBtn.style.display = 'block';
-      bar.style.background = 'rgba(245,200,66,.08)';
-      bar.style.borderBottomColor = 'rgba(245,200,66,.2)';
-      txt.style.color = 'var(--accent)';
-
-    } else if (status === 'accepted') {
-      notifyClient('accepted');
-      dot.style.background = '#4cd964';
-      dot.style.animation = 'none';
-      // Розраховуємо орієнтовний час (відстань / 30 км/год)
-      var etaMins = '~5-10';
-      if (order && order.client_lat && order.driver_lat) {
-        var R = 6371;
-        var dLat = (order.client_lat - order.driver_lat) * Math.PI/180;
-        var dLon = (order.client_lng - order.driver_lng) * Math.PI/180;
-        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(order.driver_lat*Math.PI/180)*Math.cos(order.client_lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-        var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        var mins = Math.ceil(dist / 30 * 60);
-        etaMins = '~' + Math.max(2, mins);
-      }
-      var model = (order && order.vehicle_model) ? ' · ' + order.vehicle_color + ' ' + order.vehicle_model : '';
-      var plate = (order && order.vehicle_plate) ? ' · ' + order.vehicle_plate : '';
-      txt.textContent = '✅ Водій виїхав до вас!';
-      sub.textContent = 'Очікуйте ' + etaMins + ' хв' + model + plate + ' · Водій може зателефонувати';
-      cancelBtn.style.display = 'block';
-      bar.style.background = 'rgba(76,217,100,.08)';
-      bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
-      txt.style.color = '#4cd964';
-
-    } else if (status === 'driving') {
-      notifyClient('arrived');
-      dot.style.background = '#4da3ff';
-      dot.style.animation = 'none';
-      txt.textContent = '🚗 Водій прибув!';
-      sub.textContent = 'Виходьте — машина чекає';
-      cancelBtn.style.display = 'none';
-      bar.style.background = 'rgba(77,163,255,.08)';
-      bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
-      txt.style.color = '#4da3ff';
-
-    } else if (status === 'in_progress') {
-      dot.style.background = '#4da3ff';
-      dot.style.animation = 'gps-blink 1s infinite';
-      txt.textContent = '🛣️ Поїздка розпочата';
-      sub.textContent = 'Лічильник працює';
-      cancelBtn.style.display = 'none';
-      bar.style.background = 'rgba(77,163,255,.06)';
-      txt.style.color = '#4da3ff';
-
-    } else if (status === 'completed') {
-      dot.style.background = '#4cd964';
-      dot.style.animation = 'none';
-      txt.textContent = '🏁 Поїздку завершено!';
-      sub.textContent = '';
-      cancelBtn.style.display = 'none';
-      bar.style.background = 'rgba(76,217,100,.08)';
-      txt.style.color = '#4cd964';
-
-    } else if (status === 'no_drivers') {
-      dot.style.background = '#ff453a';
-      dot.style.animation = 'none';
-      txt.textContent = '😔 Вільних машин немає';
-      sub.textContent = 'Спробуйте пізніше';
-      cancelBtn.style.display = 'none';
-      bar.style.background = 'rgba(255,69,58,.08)';
-      txt.style.color = '#ff453a';
-
-    } else if (status === 'cancelled') {
-      bar.style.display = 'none';
-    }
-  }
   // ===== ТАЙМЕР ПОШУКУ ВОДІЯ =====
   var _searchTimerInt = null;
   var _searchTimerSec = 30;
@@ -1701,7 +1459,6 @@ function initMap() {
       _searchOrderId = null;
     }
     showToast('Пошук скасовано');
-    if (window.stopOrderStatusListener) window.stopOrderStatusListener();
   };
 
   // ===== ПЕРЕВІРКА ПІДПИСКИ ВОДІЯ =====
@@ -2034,15 +1791,8 @@ function initMap() {
     if (!_drvCurrentOrder) return;
     clearInterval(_drvTimer);
     try {
-      var drvSnap = await get(ref(db, 'drivers/' + window._currentUid));
-      var drvData = drvSnap.val() || {};
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/status'), 'accepted');
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_id'), window._currentUid);
-      await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_name'), drvData.name || 'Водій');
-      await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_phone'), drvData.phone || '');
-      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_model'), drvData.vehicle_model || '');
-      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_color'), drvData.vehicle_color || '');
-      await set(ref(db, 'orders/' + _drvCurrentOrder + '/vehicle_plate'), drvData.vehicle_plate || '');
     } catch(e) {}
     showToast('✅ Прийнято! Прокладаємо маршрут...');
     drvStopSound();
@@ -2198,6 +1948,166 @@ function initMap() {
     showToast('✅ Ви вийшли');
   };
 
+  // ===== КНОПКИ КАРТИ ВОДІЯ =====
+  window.drvPassengerNotOut = function() {
+    var phone = window._lastOrderData && window._lastOrderData.client_phone;
+    var name = (window._lastOrderData && window._lastOrderData.client_name) || 'Клієнт';
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML =
+      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;border:1px solid #f5a623">' +
+        '<div style="font-size:44px;margin-bottom:12px">⏳</div>' +
+        '<div style="font-size:18px;font-weight:500;color:#fff;margin-bottom:8px">' + name + ' не виходить</div>' +
+        '<div style="font-size:13px;color:#888;margin-bottom:18px;line-height:1.6">Зателефонуйте клієнту або зачекайте ще кілька хвилин</div>' +
+        (phone ? '<a href="tel:' + phone + '" style="display:block;background:#f5a623;color:#000;border-radius:12px;padding:13px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:10px">📞 Зателефонувати ' + name + '</a>' : '') +
+        '<button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#aaa;border-radius:12px;padding:12px;font-size:14px;cursor:pointer">Закрити</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+  };
+
+  window.drvCancelOrder = function() {
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    var reasons = ['🔧 Поломка автомобіля','🆘 ДТП або надзвичайна ситуація','⏳ Клієнт не виходить','📝 Інша причина'];
+    var btns = reasons.map(function(r) {
+      return '<button onclick="drvConfirmCancel(this.dataset.r)" data-r="' + r + '" style="width:100%;background:#242424;border:.5px solid #333;color:#fff;border-radius:12px;padding:13px;font-size:14px;cursor:pointer;text-align:left;margin-bottom:8px">' + r + '</button>';
+    }).join('');
+    modal.innerHTML =
+      '<div style="background:#1a1a1a;border-radius:20px;padding:24px 20px;max-width:340px;width:100%;border:1px solid #ff453a">' +
+        '<div style="font-size:44px;text-align:center;margin-bottom:12px">🚫</div>' +
+        '<div style="font-size:17px;font-weight:500;color:#fff;text-align:center;margin-bottom:16px">Причина відмови</div>' +
+        btns +
+        '<button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;background:transparent;border:.5px solid #444;color:#888;border-radius:12px;padding:12px;font-size:13px;cursor:pointer;margin-top:4px">Назад</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+  };
+
+  window.drvConfirmCancel = async function(reason) {
+    var orderId = window._lastOrderId;
+    var order = window._lastOrderData || {};
+    document.querySelectorAll('[style*="position:fixed"]').forEach(function(m) { m.remove(); });
+    try {
+      await set(ref(db, 'orders/' + orderId + '/status'), 'cancelled');
+      await set(ref(db, 'orders/' + orderId + '/cancel_reason'), reason);
+      await set(ref(db, 'orders/' + orderId + '/cancelled_by'), 'driver');
+      var clientId = order.client_id;
+      if (clientId) {
+        await set(ref(db, 'clients/' + clientId + '/notification'), {
+          type: 'driver_cancelled',
+          message: 'Водій скасував. Причина: ' + reason,
+          order_id: orderId,
+          created_at: new Date().toISOString(),
+          read: false
+        });
+      }
+    } catch(e) {}
+    drvStopSound();
+    clearInterval(_drvTimer);
+    _drvCurrentOrder = null;
+    window._lastOrderId = null;
+    window._lastOrderData = null;
+    showToast('Замовлення скасовано');
+    showScreen('screen-driver-main');
+    document.getElementById('drv-waiting').innerHTML = '<div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...';
+  };
+
+  // ===== СТАТУС ЗАМОВЛЕННЯ ДЛЯ КЛІЄНТА =====
+  var _statusPollInt = null;
+  var _statusLastState = null;
+
+  window.startOrderStatusListener = function(orderId) {
+    _statusLastState = null;
+    document.getElementById('order-status-bar').style.display = 'block';
+    clearInterval(_statusPollInt);
+    _statusPollInt = setInterval(async function() {
+      try {
+        var snap = await get(ref(db, 'orders/' + orderId));
+        if (!snap.exists()) { stopOrderStatusListener(); return; }
+        var order = snap.val();
+        var status = order.status;
+        if (status === _statusLastState) return;
+        _statusLastState = status;
+        updateOrderStatus(status, order);
+        if (status === 'completed' || status === 'cancelled' || status === 'no_drivers') {
+          setTimeout(stopOrderStatusListener, 5000);
+        }
+      } catch(e) {}
+    }, 3000);
+  };
+
+  function stopOrderStatusListener() {
+    clearInterval(_statusPollInt);
+    var bar = document.getElementById('order-status-bar');
+    if (bar) bar.style.display = 'none';
+  }
+  window.stopOrderStatusListener = stopOrderStatusListener;
+
+  function updateOrderStatus(status, order) {
+    var bar = document.getElementById('order-status-bar');
+    var txt = document.getElementById('order-status-txt');
+    var sub = document.getElementById('order-status-sub');
+    var dot = document.getElementById('order-status-dot');
+    var cancelBtn = document.getElementById('order-cancel-btn');
+    if (!bar || !txt) return;
+
+    function playNotif(type) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var freqs = type === 'arrived' ? [523,659,784] : [440,550];
+        freqs.forEach(function(f, i) {
+          var osc = ctx.createOscillator(); var g = ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          osc.frequency.value = f; osc.type = 'sine';
+          g.gain.setValueAtTime(0.4, ctx.currentTime + i*0.2);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.2 + 0.2);
+          osc.start(ctx.currentTime + i*0.2); osc.stop(ctx.currentTime + i*0.2 + 0.2);
+        });
+        if (navigator.vibrate) navigator.vibrate(type === 'arrived' ? [300,100,300,100,300] : [200,100,200]);
+      } catch(e) {}
+    }
+
+    bar.style.display = 'block';
+    if (status === 'accepted') {
+      playNotif('accepted');
+      dot.style.background = '#4cd964'; dot.style.animation = 'none';
+      txt.textContent = '✅ Водій виїхав до вас!'; txt.style.color = '#4cd964';
+      var eta = '~5-10';
+      if (order.client_lat && order.driver_lat) {
+        var d = Math.sqrt(Math.pow(order.client_lat-order.driver_lat,2)+Math.pow((order.client_lng||0)-(order.driver_lng||0),2)) * 111;
+        eta = '~' + Math.max(2, Math.ceil(d/30*60));
+      }
+      var info = (order.vehicle_color ? order.vehicle_color + ' ' : '') + (order.vehicle_model || '') + (order.vehicle_plate ? ' · ' + order.vehicle_plate : '');
+      sub.textContent = 'Очікуйте ' + eta + ' хв' + (info.trim() ? ' · ' + info.trim() : '') + ' · Водій може зателефонувати';
+      bar.style.background = 'rgba(76,217,100,.08)'; bar.style.borderBottomColor = 'rgba(76,217,100,.2)';
+      if (cancelBtn) cancelBtn.style.display = 'block';
+    } else if (status === 'in_progress') {
+      dot.style.background = '#4da3ff'; dot.style.animation = 'gps-blink 1s infinite';
+      txt.textContent = '🛣️ Поїздка розпочата'; txt.style.color = '#4da3ff';
+      sub.textContent = 'Лічильник працює';
+      bar.style.background = 'rgba(77,163,255,.06)'; bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    } else if (status === 'driving') {
+      playNotif('arrived');
+      dot.style.background = '#4da3ff'; dot.style.animation = 'none';
+      txt.textContent = '🚗 Водій прибув!'; txt.style.color = '#4da3ff';
+      sub.textContent = 'Виходьте — машина чекає';
+      bar.style.background = 'rgba(77,163,255,.08)';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    } else if (status === 'completed') {
+      dot.style.background = '#4cd964'; dot.style.animation = 'none';
+      txt.textContent = '🏁 Поїздку завершено!'; txt.style.color = '#4cd964';
+      sub.textContent = '';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    } else if (status === 'no_drivers') {
+      dot.style.background = '#ff453a'; dot.style.animation = 'none';
+      txt.textContent = '😔 Вільних машин немає'; txt.style.color = '#ff453a';
+      sub.textContent = 'Спробуйте пізніше';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+    } else if (status === 'cancelled') {
+      bar.style.display = 'none';
+    }
+  }
+
 </script>
 
 <script>
@@ -2271,11 +2181,11 @@ function initMap() {
         var snap = await get(ref(db, 'clients/' + uid + '/notification'));
         if (!snap.exists()) return;
         var n = snap.val();
-        if (n && !n.read) {
-          if (n.type === 'no_drivers' || n.type === 'driver_cancelled') {
-            showClientNotification(n.message);
-            await set(ref(db, 'clients/' + uid + '/notification/read'), true);
-          }
+        if (n && !n.read && n.type === 'no_drivers') {
+          // Показуємо повідомлення клієнту
+          showClientNotification(n.message);
+          // Позначаємо як прочитане
+          await set(ref(db, 'clients/' + uid + '/notification/read'), true);
         }
       } catch(e) {}
     }, 4000);
@@ -2830,7 +2740,6 @@ function initMap() {
     </div>
 
     <!-- Кнопки -->
-    <!-- Головні кнопки -->
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button onclick="drvOpenExternalMaps()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">
         🗺️ Maps
@@ -2839,7 +2748,6 @@ function initMap() {
         🧑 Пасажир сів →
       </button>
     </div>
-    <!-- Додаткові кнопки -->
     <div style="display:flex;gap:8px">
       <button onclick="drvPassengerNotOut()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:12px;border:.5px solid #f5a623;background:rgba(245,166,35,.08);color:#f5a623;font-size:13px;cursor:pointer">
         ⏳ Не виходить
