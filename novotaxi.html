@@ -1714,30 +1714,38 @@ function initMap() {
     }, 4000);
   };
 
-  function showClientNotification(msg) {
-    // Звук для клієнта
+  function playClientSound() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 440;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.8);
+      // Два спадних сигнали — "недоступно"
+      [0, 0.4].forEach(function(t) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(600, ctx.currentTime + t);
+        osc.frequency.linearRampToValueAtTime(300, ctx.currentTime + t + 0.35);
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.5, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.35);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.35);
+      });
     } catch(e) {}
-    if (navigator.vibrate) navigator.vibrate([500]);
-    // Банер
+  }
+
+  function showClientNotification(msg) {
+    // Перший сигнал одразу
+    playClientSound();
+    if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
     showToast('😔 ' + msg);
-    // Якщо на екрані пошуку — показуємо великий банер
-    var searchBanner = document.getElementById('search-no-drivers');
-    if (searchBanner) {
-      searchBanner.style.display = 'block';
-      searchBanner.textContent = '😔 ' + msg;
-    }
+
+    // Другий сигнал через 5 сек
+    setTimeout(function() {
+      playClientSound();
+      if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+      showToast('😔 ' + msg);
+    }, 5000);
   }
   // ===== ПРОФІЛЬ КЛІЄНТА =====
   var AVATARS = ['😊','😎','🤩','🥳','🤗','😄','🦁','🐯','🐻','🦊','🐼','🐨','🦋','🌟','⚡','🔥','🌈','💫','🎯','🚀'];
