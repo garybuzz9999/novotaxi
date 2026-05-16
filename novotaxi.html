@@ -753,7 +753,10 @@ function initMap() {
         } else {
           window._isDriver = false;
           var phone = localStorage.getItem('nt_phone');
-          if (phone) { showScreen('screen-main'); }
+          if (phone) {
+            showScreen('screen-main');
+            if (window.startClientNotifListener) window.startClientNotifListener();
+          }
           else { showScreen('screen-phone'); }
         }
       }).catch(function() { showScreen('screen-role'); });
@@ -896,6 +899,35 @@ function initMap() {
       } catch(e) {}
     }
     var fromAddress = document.getElementById('gpsText') ? document.getElementById('gpsText').textContent : '';
+
+    // Будуємо чергу водіїв від найближчого
+    var driversSnap = await get(ref(db, 'drivers'));
+    var allDrivers = driversSnap.val() || {};
+    var queue = [];
+    Object.entries(allDrivers).forEach(function(e) {
+      var duid = e[0]; var d = e[1];
+      if (!d.online || !d.active) return;
+      // Перевіряємо тип авто
+      var svcs = d.services || ['taxi'];
+      var hasType = svcs.indexOf(type) !== -1 ||
+        (type === 'std' && (svcs.indexOf('std') !== -1 || svcs.indexOf('taxi') !== -1)) ||
+        (type === 'est' && (svcs.indexOf('est') !== -1 || svcs.indexOf('taxi') !== -1));
+      if (!hasType) return;
+      // Відстань від водія до клієнта
+      var dist = 999;
+      if (d.lat && d.lng && clientLat && clientLng) {
+        var R = 6371;
+        var dLat = (clientLat - d.lat) * Math.PI / 180;
+        var dLon = (clientLng - d.lng) * Math.PI / 180;
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(d.lat*Math.PI/180)*Math.cos(clientLat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+        dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+      queue.push({uid: duid, dist: dist});
+    });
+    // Сортуємо від найближчого
+    queue.sort(function(a,b) { return a.dist - b.dist; });
+    var queueUids = queue.slice(0,5).map(function(q) { return q.uid; });
+
     await set(ref(db, 'orders/' + orderId), {
       client_id: user.uid,
       client_name: clientName,
@@ -906,8 +938,17 @@ function initMap() {
       from_address: fromAddress,
       to_address: dest || 'По місту',
       status: 'searching',
+      queue: queueUids,
+      current_driver_index: 0,
+      current_driver_uid: queueUids[0] || null,
+      declined_by: [],
       created_at: new Date().toISOString()
     });
+
+    if (queueUids.length === 0) {
+      showToast('😔 Немає доступних водіїв');
+      return;
+    }
     showToast('🔍 Шукаємо водія...');
   };
 
@@ -1322,7 +1363,10 @@ function initMap() {
         var found = null;
         Object.entries(orders).forEach(function(entry) {
           var id = entry[0]; var o = entry[1];
-          if (o.status === 'searching' && !found && !_drvDeclinedOrders.has(id)) {
+          if (o.status === 'searching' &&
+              !found &&
+              !_drvDeclinedOrders.has(id) &&
+              o.current_driver_uid === window._currentUid) {
             found = [id, o];
           }
         });
@@ -1331,10 +1375,11 @@ function initMap() {
     }, 5000);
   }
 
+  var _drvSoundInterval = null;
+
   function drvPlaySound() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // Три короткі сигнали
       [0, 0.3, 0.6].forEach(function(t) {
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
@@ -1350,13 +1395,30 @@ function initMap() {
     } catch(e) {}
   }
 
+  function drvStartSound() {
+    drvPlaySound();
+    if (_drvSoundInterval) clearInterval(_drvSoundInterval);
+    _drvSoundInterval = setInterval(function() {
+      if (_drvCurrentOrder) {
+        drvPlaySound();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      } else {
+        clearInterval(_drvSoundInterval);
+      }
+    }, 5000);
+  }
+
+  function drvStopSound() {
+    clearInterval(_drvSoundInterval);
+    _drvSoundInterval = null;
+  }
+
   function drvShowOrder(orderId, order) {
     _drvCurrentOrder = orderId;
     window._lastOrderId = orderId;
     window._lastOrderData = order;
-    // Звуковий сигнал
-    drvPlaySound();
-    // Вібрація якщо підтримується
+    // Звук кожні 5 сек + вібрація
+    drvStartSound();
     if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
     document.getElementById('drv-waiting').style.display = 'none';
     document.getElementById('drv-order-card').style.display = 'block';
@@ -1385,7 +1447,7 @@ function initMap() {
     _drvTimer = setInterval(function() {
       t--;
       document.getElementById('drv-timer').textContent = '0:' + String(t).padStart(2,'0');
-      if (t <= 0) { clearInterval(_drvTimer); drvDecline(); }
+      if (t <= 0) { clearInterval(_drvTimer); window.drvDecline(); }
     }, 1000);
   }
 
@@ -1397,6 +1459,7 @@ function initMap() {
       await set(ref(db, 'orders/' + _drvCurrentOrder + '/driver_id'), window._currentUid);
     } catch(e) {}
     showToast('✅ Прийнято! Прокладаємо маршрут...');
+    drvStopSound();
     _drvCurrentOrder = null;
     document.getElementById('drv-order-card').style.display = 'none';
     document.getElementById('drv-waiting').style.display = 'block';
@@ -1407,9 +1470,62 @@ function initMap() {
     }
   };
 
-  window.drvDecline = function() {
+  window.drvDecline = async function() {
     clearInterval(_drvTimer);
-    if (_drvCurrentOrder) _drvDeclinedOrders.add(_drvCurrentOrder);
+    drvStopSound();
+    var orderId = _drvCurrentOrder;
+    var drvUid = window._currentUid;
+    if (orderId) {
+      _drvDeclinedOrders.add(orderId);
+      try {
+        // Додаємо водія в список відхилених в Firebase
+        var snap = await get(ref(db, 'orders/' + orderId));
+        var order = snap.val() || {};
+        var declined = order.declined_by || [];
+        if (!Array.isArray(declined)) declined = [];
+        declined.push(drvUid);
+
+        // Знаходимо наступного в черзі
+        var queue = order.queue || [];
+        var currentIdx = order.current_driver_index || 0;
+        var nextIdx = currentIdx + 1;
+        var nextUid = null;
+
+        // Шукаємо наступного хто онлайн і не відмовився
+        while (nextIdx < queue.length) {
+          if (declined.indexOf(queue[nextIdx]) === -1) {
+            // Перевіряємо чи онлайн
+            var drvCheckSnap = await get(ref(db, 'drivers/' + queue[nextIdx] + '/online'));
+            if (drvCheckSnap.val() === true) {
+              nextUid = queue[nextIdx];
+              break;
+            }
+          }
+          nextIdx++;
+        }
+
+        if (nextUid) {
+          // Передаємо наступному водію
+          await set(ref(db, 'orders/' + orderId + '/current_driver_uid'), nextUid);
+          await set(ref(db, 'orders/' + orderId + '/current_driver_index'), nextIdx);
+          await set(ref(db, 'orders/' + orderId + '/declined_by'), declined);
+        } else {
+          // Немає більше водіїв
+          await set(ref(db, 'orders/' + orderId + '/status'), 'no_drivers');
+          await set(ref(db, 'orders/' + orderId + '/declined_by'), declined);
+          var clientId = order.client_id;
+          if (clientId) {
+            await set(ref(db, 'clients/' + clientId + '/notification'), {
+              type: 'no_drivers',
+              message: 'Вільних машин немає. Спробуйте пізніше.',
+              order_id: orderId,
+              created_at: new Date().toISOString(),
+              read: false
+            });
+          }
+        }
+      } catch(e) {}
+    }
     _drvCurrentOrder = null;
     document.getElementById('drv-order-card').style.display = 'none';
     document.getElementById('drv-waiting').style.display = 'block';
@@ -1578,6 +1694,51 @@ function initMap() {
   }
 
 
+
+  // Слухаємо повідомлення для клієнта (немає водіїв)
+  window.startClientNotifListener = function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    setInterval(async function() {
+      try {
+        var snap = await get(ref(db, 'clients/' + uid + '/notification'));
+        if (!snap.exists()) return;
+        var n = snap.val();
+        if (n && !n.read && n.type === 'no_drivers') {
+          // Показуємо повідомлення клієнту
+          showClientNotification(n.message);
+          // Позначаємо як прочитане
+          await set(ref(db, 'clients/' + uid + '/notification/read'), true);
+        }
+      } catch(e) {}
+    }, 4000);
+  };
+
+  function showClientNotification(msg) {
+    // Звук для клієнта
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 440;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.8);
+    } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate([500]);
+    // Банер
+    showToast('😔 ' + msg);
+    // Якщо на екрані пошуку — показуємо великий банер
+    var searchBanner = document.getElementById('search-no-drivers');
+    if (searchBanner) {
+      searchBanner.style.display = 'block';
+      searchBanner.textContent = '😔 ' + msg;
+    }
+  }
   // ===== ПРОФІЛЬ КЛІЄНТА =====
   var AVATARS = ['😊','😎','🤩','🥳','🤗','😄','🦁','🐯','🐻','🦊','🐼','🐨','🦋','🌟','⚡','🔥','🌈','💫','🎯','🚀'];
 
