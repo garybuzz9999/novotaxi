@@ -1574,11 +1574,7 @@ function initMap() {
           }, 2000);
         }
       } else {
-        // Підписка закінчилась — вимикаємо онлайн
-        if (d.online) {
-          await set(ref(db, 'drivers/' + uid + '/online'), false);
-        }
-        // Показуємо через 1 сек щоб екран завантажився
+        // Підписка закінчилась — показуємо попередження (онлайн не чіпаємо)
         setTimeout(function() {
           showSubscriptionExpired(d, trialUntil, subUntil);
         }, 1000);
