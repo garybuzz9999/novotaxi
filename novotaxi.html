@@ -1586,7 +1586,7 @@ function initMap() {
     } catch(e) {}
   };
   // ===== КАБІНЕТ ВОДІЯ =====
-  let _drvOnline = false;
+  let _drvOnline = true;
   let _drvTimer = null;
   let _drvCurrentOrder = null;
   let _drvPollInterval = null;
@@ -1615,16 +1615,23 @@ function initMap() {
         document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
         document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
       }
-      // Відновлюємо статус онлайн з Firebase після перезавантаження
-      if (d.online === true) {
-        _drvOnline = true;
+      // Водій завжди онлайн при вході — сам вимикає коли не працює
+      _drvOnline = d.online !== false; // якщо водій сам не вимкнув — онлайн
+      if (_drvOnline) {
+        await set(ref(db, 'drivers/' + uid + '/online'), true);
         document.getElementById('drv-sw').className = 'bo-sw on';
         document.getElementById('drv-status-dot').style.background = '#4cd964';
         document.getElementById('drv-status-txt').textContent = 'Онлайн';
         document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
         document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      } else {
+        document.getElementById('drv-sw').className = 'bo-sw off';
+        document.getElementById('drv-status-dot').style.background = '#888';
+        document.getElementById('drv-status-txt').textContent = 'Офлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я офлайн';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти не бачать вас';
       }
-      // Перевіряємо підписку після відновлення статусу
+      // Перевіряємо підписку після встановлення статусу
       if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
     } catch(e) { console.error('initDriver:', e); }
@@ -1659,11 +1666,6 @@ function initMap() {
   };
 
   window.drvToggleOnline = async function() {
-    // Перевіряємо підписку перед увімкненням
-    if (!_drvOnline) {
-      var subOk = await checkDriverSubscription();
-      if (!subOk) return;
-    }
     _drvOnline = !_drvOnline;
     document.getElementById('drv-sw').className = 'bo-sw ' + (_drvOnline ? 'on' : 'off');
     document.getElementById('drv-status-dot').style.background = _drvOnline ? '#4cd964' : '#888';
@@ -3159,10 +3161,10 @@ function initMap() {
   <div id="drv-page-main" style="display:block">
     <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);padding:14px 16px;margin:12px 16px;border-radius:12px">
       <div>
-        <div style="font-size:15px;font-weight:500;color:var(--text)" id="drv-toggle-txt">Я офлайн</div>
-        <div style="font-size:12px;color:var(--hint);margin-top:3px" id="drv-toggle-sub">Клієнти не бачать вас</div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)" id="drv-toggle-txt">Я онлайн — беру замовлення</div>
+        <div style="font-size:12px;color:var(--hint);margin-top:3px" id="drv-toggle-sub">Клієнти бачать вас на карті</div>
       </div>
-      <button class="bo-sw off" id="drv-sw" onclick="drvToggleOnline()"></button>
+      <button class="bo-sw on" id="drv-sw" onclick="drvToggleOnline()"></button>
     </div>
     <div style="padding:0 16px;margin-bottom:12px">
       <div class="bo-lbl">Мої послуги</div>
