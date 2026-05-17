@@ -1617,6 +1617,15 @@ function initMap() {
         document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
         document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
       }
+      // Відновлюємо статус онлайн з Firebase після перезавантаження
+      if (d.online === true) {
+        _drvOnline = true;
+        document.getElementById('drv-sw').className = 'bo-sw on';
+        document.getElementById('drv-status-dot').style.background = '#4cd964';
+        document.getElementById('drv-status-txt').textContent = 'Онлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      }
       drvStartPolling();
     } catch(e) { console.error('initDriver:', e); }
   };
