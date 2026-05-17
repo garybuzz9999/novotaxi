@@ -1611,23 +1611,14 @@ function initMap() {
         document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
         document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
       }
-      // Водій завжди онлайн при вході — сам вимикає коли не працює
-      _drvOnline = d.online !== false; // якщо водій сам не вимкнув — онлайн
-      if (_drvOnline) {
-        await set(ref(db, 'drivers/' + uid + '/online'), true);
-        document.getElementById('drv-sw').className = 'bo-sw on';
-        document.getElementById('drv-status-dot').style.background = '#4cd964';
-        document.getElementById('drv-status-txt').textContent = 'Онлайн';
-        document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
-        document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
-      } else {
-        document.getElementById('drv-sw').className = 'bo-sw off';
-        document.getElementById('drv-status-dot').style.background = '#888';
-        document.getElementById('drv-status-txt').textContent = 'Офлайн';
-        document.getElementById('drv-toggle-txt').textContent = 'Я офлайн';
-        document.getElementById('drv-toggle-sub').textContent = 'Клієнти не бачать вас';
-      }
-      // Перевіряємо підписку після встановлення статусу
+      // Завжди онлайн при відкритті — водій сам вимикає на перерву
+      _drvOnline = true;
+      await set(ref(db, 'drivers/' + uid + '/online'), true);
+      document.getElementById('drv-sw').className = 'bo-sw on';
+      document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
+      document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      try { document.getElementById('drv-status-dot').style.background = '#4cd964'; } catch(e) {}
+      try { document.getElementById('drv-status-txt').textContent = 'Онлайн'; } catch(e) {}
       if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
     } catch(e) { console.error('initDriver:', e); }
