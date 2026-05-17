@@ -1594,8 +1594,6 @@ function initMap() {
   window.initDriverScreen = async () => {
     const uid = window._currentUid;
     if (!uid) return;
-    // Перевіряємо підписку
-    if (window.checkSubOnInit) window.checkSubOnInit();
     try {
       const snap = await get(ref(db, 'drivers/' + uid));
       if (!snap.exists()) return;
@@ -1626,6 +1624,8 @@ function initMap() {
         document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
         document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
       }
+      // Перевіряємо підписку після відновлення статусу
+      if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
     } catch(e) { console.error('initDriver:', e); }
   };
