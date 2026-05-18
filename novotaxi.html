@@ -2152,6 +2152,43 @@ function initMap() {
     }
   };
 
+  window.drvActivateCode = async function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    var code = document.getElementById("drv-code-input").value.trim().toUpperCase();
+    if (!code) { showToast("Введіть код"); return; }
+    var status = document.getElementById("drv-code-status");
+    try {
+      var snap = await get(ref(db, "invite_codes/" + code));
+      if (!snap.exists()) {
+        status.style.display = "block";
+        status.style.color = "#ff453a";
+        status.textContent = "Код не знайдено або вже використано";
+        return;
+      }
+      var codeData = snap.val();
+      if (codeData.used) {
+        status.style.display = "block";
+        status.style.color = "#ff453a";
+        status.textContent = "Цей код вже використано";
+        return;
+      }
+      // Активуємо підписку — 30 днів
+      var until = new Date();
+      until.setDate(until.getDate() + 30);
+      await set(ref(db, "drivers/" + uid + "/subscription_until"), until.toISOString());
+      await set(ref(db, "drivers/" + uid + "/trial_until"), until.toISOString());
+      await set(ref(db, "invite_codes/" + code + "/used"), true);
+      await set(ref(db, "invite_codes/" + code + "/used_by"), uid);
+      status.style.display = "block";
+      status.style.color = "#4cd964";
+      status.textContent = "✅ Підписку активовано до " + until.toLocaleDateString("uk");
+      document.getElementById("drv-code-input").value = "";
+      showToast("✅ Підписка активована!");
+      if (window.initDriverScreen) window.initDriverScreen();
+    } catch(e) { showToast("Помилка: " + e.message); }
+  };
+
   window.drvSignOut = async function() {
     _drvOnline = false;
     clearInterval(_drvTimer);
@@ -2895,7 +2932,7 @@ function initMap() {
         html += "<div class='bo-driver-meta'>" + date + "</div></div>";
         html += "<div class='bo-status " + (done?"ok":"warn") + "'>" + (done?"Оброблено":"Очікує") + "</div>";
         html += "</div>";
-        html += "<div style='font-size:12px;color:var(--muted);margin-bottom:4px'>Email: <b style='color:var(--accent)'>" + (r.email||"—") + "</b></div>";
+        html += "<div style='font-size:12px;color:var(--muted);margin-bottom:4px'>Email: <a href='mailto:" + (r.email||"") + "' style='color:var(--accent);text-decoration:none;font-weight:500'>" + (r.email||"—") + "</a></div>";
         html += "<div style='font-size:12px;color:var(--muted);margin-bottom:10px'>Тел: " + (r.phone||"—") + "</div>";
         if (!done) {
           html += "<button data-uid='" + uid + "' class='subreq-done-btn' style='width:100%;background:var(--black);color:#4cd964;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer'>Позначити як оброблено</button>";
@@ -3614,6 +3651,16 @@ function initMap() {
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити на ваш email</div>
         <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">📩 Отримати код підписки</button>
         <div id="drv-req-code-status" style="display:none;margin-top:8px;font-size:12px;color:#4cd964;text-align:center"></div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">🔑 Ввести код підписки</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Після оплати введіть код який надіслав адміністратор</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="drv-code-input" placeholder="XXXXXX" maxlength="10"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:18px;font-weight:500;color:var(--text);outline:none;letter-spacing:3px;text-transform:uppercase">
+          <button onclick="drvActivateCode()" style="background:var(--accent);color:var(--black);border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer">Активувати</button>
+        </div>
+        <div id="drv-code-status" style="display:none;margin-top:8px;font-size:12px;text-align:center"></div>
       </div>
       <button onclick="drvSignOut()" style="width:100%;background:transparent;border:1.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer">🚪 Вийти з акаунту</button>
     </div>
