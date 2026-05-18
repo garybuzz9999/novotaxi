@@ -2120,35 +2120,35 @@ function initMap() {
   window.drvSavePhone = async function() {
     var uid = window._currentUid;
     if (!uid) return;
-    var phone = document.getElementById('drv-prof-phone-input').value.trim();
-    if (!phone) { showToast('Введіть номер телефону'); return; }
+    var phone = document.getElementById("drv-prof-phone-input").value.trim();
+    if (!phone) { showToast("Введіть номер"); return; }
     try {
-      await set(ref(db, 'drivers/' + uid + '/phone'), phone);
-      showToast('✅ Телефон збережено');
-    } catch(e) { showToast('Помилка: ' + e.message); }
+      await set(ref(db, "drivers/" + uid + "/phone"), phone);
+      showToast("\u2705 Телефон збережено");
+    } catch(e) { showToast("Помилка: " + e.message); }
   };
 
   window.drvRequestCode = async function() {
     var uid = window._currentUid;
     if (!uid) return;
-    var btn = document.getElementById('drv-req-code-btn');
-    var status = document.getElementById('drv-req-code-status');
+    var btn = document.getElementById("drv-req-code-btn");
+    var st = document.getElementById("drv-req-code-status");
     btn.disabled = true;
-    btn.textContent = '⏳ Відправляємо...';
+    btn.textContent = "\u23f3 Відправляємо...";
     try {
-      var snap = await get(ref(db, 'drivers/' + uid));
+      var snap = await get(ref(db, "drivers/" + uid));
       var d = snap.val() || {};
-      await set(ref(db, 'subscription_requests/' + uid), {
-        uid: uid, email: d.email || '', name: d.name || 'Водій',
-        phone: d.phone || '', requested_at: Date.now(), status: 'pending'
+      await set(ref(db, "subscription_requests/" + uid), {
+        uid: uid, email: d.email || "", name: d.name || "Водій",
+        phone: d.phone || "", requested_at: Date.now(), status: "pending"
       });
-      btn.textContent = '✅ Запит відправлено';
-      status.style.display = 'block';
-      status.textContent = 'Адміністратор отримав запит · Очікуйте реквізити на ' + (d.email || 'ваш email');
+      btn.textContent = "\u2705 Запит відправлено";
+      st.style.display = "block";
+      st.textContent = "Очікуйте реквізити на " + (d.email || "ваш email");
     } catch(e) {
       btn.disabled = false;
-      btn.textContent = '📩 Отримати код підписки';
-      showToast('Помилка: ' + e.message);
+      btn.textContent = "\ud83d\udce9 Отримати код підписки";
+      showToast("Помилка: " + e.message);
     }
   };
 
@@ -2876,37 +2876,46 @@ function initMap() {
   };
 
   window.boLoadSubReqs = async function() {
-    var el = document.getElementById('bo-subreqs-list');
+    var el = document.getElementById("bo-subreqs-list");
     if (!el) return;
-    el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--hint)">Завантаження...</div>';
+    el.innerHTML = "<div style='text-align:center;padding:14px'>Завантаження...</div>";
     try {
-      var snap = await window._get(window._ref(window._db, 'subscription_requests'));
-      if (!snap.exists()) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Запитів немає</div>'; return; }
+      var snap = await window._get(window._ref(window._db, "subscription_requests"));
+      if (!snap.exists()) { el.innerHTML = "<div style='text-align:center;padding:20px;color:var(--hint)'>Запитів немає</div>"; return; }
       var reqs = snap.val();
-      var html = Object.entries(reqs).map(function(e) {
-        var uid = e[0], r = e[1];
-        var date = r.requested_at ? new Date(r.requested_at).toLocaleDateString('uk') : '—';
-        var done = r.status === 'done';
-        return '<div class="bo-card" style="margin-bottom:10px">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
-            '<div class="bo-ava">' + (r.name||'?').substring(0,2).toUpperCase() + '</div>' +
-            '<div style="flex:1"><div class="bo-driver-name">' + (r.name||'—') + '</div>' +
-            '<div class="bo-driver-meta">' + date + '</div></div>' +
-            '<div class="bo-status ' + (done?'ok':'warn') + '">' + (done?'Оброблено':'Очікує') + '</div>' +
-          '</div>' +
-          '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">📧 <span style="color:var(--accent)">' + (r.email||'—') + '</span></div>' +
-          '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">📱 ' + (r.phone||'—') + '</div>' +
-          (!done ? '<button onclick="boMarkSubDone('' + uid + '')" style="width:100%;background:var(--black);color:#4cd964;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✅ Позначити як оброблено</button>' : '') +
-        '</div>';
-      }).join('');
-      el.innerHTML = html || '<div style="text-align:center;padding:20px;color:var(--hint)">Запитів немає</div>';
-    } catch(e) { el.innerHTML = '<div style="color:#ff453a;padding:12px">Помилка: ' + e.message + '</div>'; }
+      var html = "";
+      Object.keys(reqs).forEach(function(uid) {
+        var r = reqs[uid];
+        var done = r.status === "done";
+        var date = r.requested_at ? new Date(r.requested_at).toLocaleDateString("uk") : "—";
+        html += "<div class='bo-card' style='margin-bottom:10px'>";
+        html += "<div style='display:flex;align-items:center;gap:10px;margin-bottom:8px'>";
+        html += "<div class='bo-ava'>" + (r.name||"?").substring(0,2).toUpperCase() + "</div>";
+        html += "<div style='flex:1'><div class='bo-driver-name'>" + (r.name||"—") + "</div>";
+        html += "<div class='bo-driver-meta'>" + date + "</div></div>";
+        html += "<div class='bo-status " + (done?"ok":"warn") + "'>" + (done?"Оброблено":"Очікує") + "</div>";
+        html += "</div>";
+        html += "<div style='font-size:12px;color:var(--muted);margin-bottom:4px'>Email: <b style='color:var(--accent)'>" + (r.email||"—") + "</b></div>";
+        html += "<div style='font-size:12px;color:var(--muted);margin-bottom:10px'>Тел: " + (r.phone||"—") + "</div>";
+        if (!done) {
+          html += "<button data-uid='" + uid + "' class='subreq-done-btn' style='width:100%;background:var(--black);color:#4cd964;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer'>Позначити як оброблено</button>";
+        }
+        html += "</div>";
+      });
+      el.innerHTML = html || "<div style='text-align:center;padding:20px;color:var(--hint)'>Запитів немає</div>";
+      el.querySelectorAll(".subreq-done-btn").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          boMarkSubDone(this.getAttribute("data-uid"));
+        });
+      });
+    } catch(e) { el.innerHTML = "<div style='color:#ff453a;padding:12px'>Помилка: " + e.message + "</div>"; }
   };
 
   window.boMarkSubDone = async function(uid) {
     try {
-      await window._set(window._ref(window._db, 'subscription_requests/' + uid + '/status'), 'done');
-      showToast('✅ Позначено'); boLoadSubReqs();
+      await window._set(window._ref(window._db, "subscription_requests/" + uid + "/status"), "done");
+      showToast("Позначено");
+      boLoadSubReqs();
     } catch(e) {}
   };
 
@@ -3586,27 +3595,24 @@ function initMap() {
       </div>
     </div>
     <div style="padding:14px 16px">
-      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
-        <div style="font-size:12px;color:var(--hint);margin-bottom:6px">📱 Телефон</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="tel" id="drv-prof-phone-input" placeholder="+380 67 123 45 67"
-            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:15px;color:var(--text);outline:none">
-          <button onclick="drvSavePhone()" style="background:var(--black);color:var(--accent);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer">Зберегти</button>
-        </div>
-      </div>
-      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--text)">300 грн / місяць</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px" id="drv-prof-sub">—</div>
         </div>
         <span style="font-size:12px;color:#4cd964">Активна</span>
       </div>
+      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--hint);margin-bottom:6px">📱 Телефон</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="tel" id="drv-prof-phone-input" placeholder="+380 67 123 45 67" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:15px;color:var(--text);outline:none">
+          <button onclick="drvSavePhone()" style="background:var(--black);color:var(--accent);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer">Зберегти</button>
+        </div>
+      </div>
       <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
         <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">💳 Продовження підписки</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити для оплати на ваш email</div>
-        <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">
-          📩 Отримати код підписки
-        </button>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити на ваш email</div>
+        <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">📩 Отримати код підписки</button>
         <div id="drv-req-code-status" style="display:none;margin-top:8px;font-size:12px;color:#4cd964;text-align:center"></div>
       </div>
       <button onclick="drvSignOut()" style="width:100%;background:transparent;border:1.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer">🚪 Вийти з акаунту</button>
@@ -3851,7 +3857,7 @@ function initMap() {
   <div class="bo-page" id="bo-subreqs">
     <div class="bo-lbl">Запити на підписку</div>
     <div id="bo-subreqs-list"><div style="text-align:center;padding:20px;color:var(--hint)">Натисніть Оновити</div></div>
-    <button class="bo-btn" onclick="boLoadSubReqs()">🔄 Оновити</button>
+    <button class="bo-btn" onclick="boLoadSubReqs()">&#128260; Оновити</button>
   </div>
 
   <!-- ЗАМОВЛЕННЯ -->
