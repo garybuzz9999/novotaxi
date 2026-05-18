@@ -541,7 +541,8 @@
         <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);animation:gps-blink 1s infinite;flex-shrink:0" id="order-status-dot"></div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:500;color:var(--accent)" id="order-status-txt">Шукаємо водія...</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px" id="order-status-sub"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5" id="order-status-sub"></div>
+          <div style="font-size:12px;color:var(--hint);margin-top:4px;display:none" id="order-status-tariff"></div>
         </div>
         <button onclick="cancelSearch()" id="order-cancel-btn" style="background:none;border:.5px solid #ff453a;color:#ff453a;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;flex-shrink:0">Скасувати</button>
       </div>
@@ -1251,6 +1252,32 @@ function initMap() {
         set(ref(db, 'orders/' + window._rideOrderId + '/per_km'), _ridePerKm);
       } catch(e) {}
     }
+  };
+
+  window.rideForceClose = async function() {
+    clearInterval(_rideMeterInt);
+    if (window._rideGpsWatch !== undefined) {
+      navigator.geolocation.clearWatch(window._rideGpsWatch);
+      window._rideGpsWatch = undefined;
+    }
+    var total = Math.round(_rideBoard + _rideKm * _ridePerKm);
+    if (_rideOrderId) {
+      try {
+        await set(ref(db, 'orders/' + _rideOrderId + '/status'), 'completed');
+        await set(ref(db, 'orders/' + _rideOrderId + '/price'), total);
+        await set(ref(db, 'orders/' + _rideOrderId + '/total'), total);
+        await set(ref(db, 'orders/' + _rideOrderId + '/km'), parseFloat(_rideKm.toFixed(1)));
+        await set(ref(db, 'orders/' + _rideOrderId + '/board'), _rideBoard);
+        await set(ref(db, 'orders/' + _rideOrderId + '/per_km'), _ridePerKm);
+      } catch(e) {}
+    }
+    showToast('✅ Замовлення закрито · ' + total + ' грн');
+    setTimeout(function() {
+      document.getElementById('ride-phase2').style.display = 'none';
+      showScreen('screen-driver-main');
+      if (window.initDriverScreen) window.initDriverScreen();
+      _rideOrderId = null;
+    }, 800);
   };
 
   window.rideStop = function() {
@@ -2084,15 +2111,60 @@ function initMap() {
         if (o.status === _statusLast) return;
         _statusLast = o.status;
         updateOrderStatus(o.status, o);
-        if (o.status === 'completed' || o.status === 'cancelled' || o.status === 'no_drivers') {
+        if (o.status === 'cancelled' || o.status === 'no_drivers') {
           setTimeout(function() {
             clearInterval(_statusInt);
             var b = document.getElementById('order-status-bar');
             if (b) b.style.display = 'none';
-          }, 5000);
+          }, 4000);
+        }
+        if (o.status === 'completed') {
+          clearInterval(_statusInt);
+          // Показуємо фінальну картку клієнту
+          showClientFinish(o);
         }
       } catch(e) {}
     }, 3000);
+  }
+
+  function showClientFinish(order) {
+    var price = order.price || order.total || '—';
+    var km = order.km ? parseFloat(order.km).toFixed(1) : '—';
+    var board = order.board || '';
+    var perKm = order.per_km || '';
+    // Оновлюємо статус-бар
+    var bar = document.getElementById('order-status-bar');
+    var txt = document.getElementById('order-status-txt');
+    var sub = document.getElementById('order-status-sub');
+    var dot = document.getElementById('order-status-dot');
+    if (bar) {
+      bar.style.display = 'block';
+      bar.style.background = 'rgba(76,217,100,.12)';
+      bar.style.borderBottomColor = 'rgba(76,217,100,.3)';
+    }
+    if (dot) { dot.style.background = '#4cd964'; dot.style.animation = 'none'; }
+    if (txt) { txt.textContent = '✅ Поїздку завершено!'; txt.style.color = '#4cd964'; }
+    if (sub) {
+      var parts = [];
+      if (price !== '—') parts.push('💰 ' + price + ' грн');
+      if (km !== '—') parts.push('📍 ' + km + ' км');
+      sub.textContent = parts.length ? parts.join(' · ') : 'Дякуємо за поїздку!';
+    }
+    var te = document.getElementById('order-status-tariff');
+    if (te) te.style.display = 'none';
+    // Звук і вібрація
+    try {
+      var ctx3 = new (window.AudioContext || window.webkitAudioContext)();
+      [500, 600, 800].forEach(function(f, i) {
+        var o = ctx3.createOscillator(); var g = ctx3.createGain();
+        o.connect(g); g.connect(ctx3.destination);
+        o.frequency.value = f; o.type = 'sine';
+        g.gain.setValueAtTime(0.4, ctx3.currentTime + i*0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx3.currentTime + i*0.2 + 0.25);
+        o.start(ctx3.currentTime + i*0.2); o.stop(ctx3.currentTime + i*0.2 + 0.3);
+      });
+      if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
+    } catch(e) {}
   }
 
   function stopOrderStatusListener() {
@@ -3105,6 +3177,7 @@ function initMap() {
         style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         🏁 <span id="ride-stop-txt">Приїхали — зупинити лічильник</span>
       </button>
+      <button onclick="rideForceClose()" style="width:100%;background:transparent;border:.5px solid rgba(255,69,58,.5);color:#ff453a;border-radius:12px;padding:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:10px">✖ Закрити замовлення</button>
       <div style="font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:8px">🛰️ GPS · кожні 3 сек</div>
     </div>
   </div>
