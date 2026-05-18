@@ -667,7 +667,7 @@ function initMap() {
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getDatabase, ref, set, get, push, onValue }
+  import { getDatabase, ref, set, get, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
   import { getAuth, signInWithPopup, GoogleAuthProvider,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
@@ -685,6 +685,7 @@ function initMap() {
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
+  window._db = db;
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
@@ -1612,14 +1613,21 @@ function initMap() {
         document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
       }
       // Водій завжди онлайн при вході — сам вимикає коли не працює
-      // Завжди онлайн при відкритті — водій сам вимикає на перерву
-      _drvOnline = true;
-      await set(ref(db, 'drivers/' + uid + '/online'), true);
-      document.getElementById('drv-sw').className = 'bo-sw on';
-      try { document.getElementById('drv-status-dot').style.background = '#4cd964'; } catch(e) {}
-      try { document.getElementById('drv-status-txt').textContent = 'Онлайн'; } catch(e) {}
-      document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
-      document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      _drvOnline = d.online !== false; // якщо водій сам не вимкнув — онлайн
+      if (_drvOnline) {
+        await set(ref(db, 'drivers/' + uid + '/online'), true);
+        document.getElementById('drv-sw').className = 'bo-sw on';
+        document.getElementById('drv-status-dot').style.background = '#4cd964';
+        document.getElementById('drv-status-txt').textContent = 'Онлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      } else {
+        document.getElementById('drv-sw').className = 'bo-sw off';
+        document.getElementById('drv-status-dot').style.background = '#888';
+        document.getElementById('drv-status-txt').textContent = 'Офлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я офлайн';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти не бачать вас';
+      }
       // Перевіряємо підписку після встановлення статусу
       if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
@@ -1940,14 +1948,11 @@ function initMap() {
   var _streetStart = null;
   var _streetTimerInt = null;
   var _streetWatchId = null;
+  var _streetLat = null;
+  var _streetLng = null;
   var _streetPrevLat = null;
   var _streetPrevLng = null;
-  var _streetPrevSpeed = 0;
   var _streetKm = 0;
-  var _streetWaitSec = 0;
-  var _streetBoard = 0;
-  var _streetPerKm = 5;
-  var _streetPerWait = 1;
 
   function calcStreetDist(lat1, lng1, lat2, lng2) {
     var R = 6371;
@@ -1959,77 +1964,47 @@ function initMap() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
-  function calcStreetPrice() {
-    return Math.round(_streetBoard + _streetKm * _streetPerKm + (_streetWaitSec / 60) * _streetPerWait);
-  }
-
-  window.startStreetRide = async function() {
+  window.startStreetRide = function() {
     if (_streetActive) return;
-    var uid = window._currentUid;
-    var driverType = 'std';
-    try {
-      var dSnap = await get(ref(db, 'drivers/' + uid));
-      if (dSnap.exists()) {
-        var d = dSnap.val();
-        var svcs = d.services || ['std'];
-        var typeMap = {'taxi':'std','std':'std','est':'est','bus':'bus','cargo':'cargo','courier':'courier'};
-        for (var i = 0; i < svcs.length; i++) {
-          if (typeMap[svcs[i]]) { driverType = typeMap[svcs[i]]; break; }
-        }
-      }
-    } catch(e) {}
-
-    var tariff = (window._tariffs && window._tariffs[driverType]) || {board:30, km:5, wait:1};
-    _streetBoard   = tariff.board || 30;
-    _streetPerKm   = tariff.km    || 5;
-    _streetPerWait = tariff.wait  || 1;
-    _streetActive  = true;
-    _streetStart   = Date.now();
-    _streetKm      = 0;
-    _streetWaitSec = 0;
+    _streetActive = true;
+    _streetStart = Date.now();
+    _streetKm = 0;
     _streetPrevLat = null;
     _streetPrevLng = null;
-    _streetPrevSpeed = 0;
 
     document.getElementById('btn-street').style.display = 'none';
     document.getElementById('street-ride-block').style.display = 'block';
     document.getElementById('street-km').textContent = '0.0';
-    document.getElementById('street-wait-min').textContent = '0.0';
-    document.getElementById('street-price').textContent = _streetBoard;
-    document.getElementById('street-board-lbl').textContent = _streetBoard;
-    document.getElementById('street-km-lbl').textContent = _streetPerKm;
-    document.getElementById('street-wait-lbl').textContent = _streetPerWait;
+    document.getElementById('street-price').textContent = '0';
 
+    // Таймер
     _streetTimerInt = setInterval(function() {
       var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
       var m = Math.floor(elapsed / 60);
       var s = elapsed % 60;
       document.getElementById('street-timer').textContent =
         (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-      if (_streetPrevSpeed < 3) {
-        _streetWaitSec++;
-        document.getElementById('street-wait-min').textContent = (_streetWaitSec / 60).toFixed(1);
-      }
-      document.getElementById('street-price').textContent = calcStreetPrice();
     }, 1000);
 
+    // GPS відстеження
     if (navigator.geolocation) {
       _streetWatchId = navigator.geolocation.watchPosition(function(pos) {
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
-        _streetPrevSpeed = pos.coords.speed ? pos.coords.speed * 3.6 : 0;
         if (_streetPrevLat !== null) {
           var d = calcStreetDist(_streetPrevLat, _streetPrevLng, lat, lng);
-          if (d > 0.005) {
+          if (d > 0.005) { // фільтр шуму < 5м
             _streetKm += d;
+            var perKm = _ridePerKm || 5;
             document.getElementById('street-km').textContent = _streetKm.toFixed(1);
+            document.getElementById('street-price').textContent = Math.round(_streetKm * perKm);
           }
         }
         _streetPrevLat = lat;
         _streetPrevLng = lng;
-      }, null, { enableHighAccuracy: true, maximumAge: 2000 });
+      }, null, { enableHighAccuracy: true, maximumAge: 3000 });
     }
-    showToast('🚶 Поїздку розпочато · посадка ' + _streetBoard + ' грн');
+    showToast('🚶 Поїздку розпочато');
   };
 
   window.finishStreetRide = async function() {
@@ -2037,8 +2012,12 @@ function initMap() {
     _streetActive = false;
     clearInterval(_streetTimerInt);
     if (_streetWatchId) navigator.geolocation.clearWatch(_streetWatchId);
+
     var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
-    var price = calcStreetPrice();
+    var perKm = _ridePerKm || 5;
+    var price = Math.round(_streetKm * perKm);
+
+    // Зберігаємо в Firebase
     var uid = window._currentUid;
     if (uid) {
       try {
@@ -2047,9 +2026,7 @@ function initMap() {
           driver_id: uid,
           type: 'street',
           km: parseFloat(_streetKm.toFixed(2)),
-          wait_sec: _streetWaitSec,
           duration_sec: elapsed,
-          board: _streetBoard,
           price: price,
           created_at: Date.now(),
           status: 'done',
@@ -2057,9 +2034,10 @@ function initMap() {
         });
       } catch(e) {}
     }
+
     document.getElementById('btn-street').style.display = 'block';
     document.getElementById('street-ride-block').style.display = 'none';
-    showToast('✅ ' + _streetKm.toFixed(1) + ' км · ' + Math.round(_streetWaitSec/60) + ' хв · ' + price + ' грн');
+    showToast('✅ Поїздка ' + _streetKm.toFixed(1) + ' км · ' + price + ' грн');
   };
 
   window.drvSignOut = async function() {
@@ -2582,9 +2560,9 @@ function initMap() {
   window.boRefreshStats = async () => {
     try {
       const [dSnap, oSnap, cfgSnap] = await Promise.all([
-        window._get(window._ref(db,'drivers')),
-        window._get(window._ref(db,'orders')),
-        window._get(window._ref(db,'config/settings'))
+        window._get(window._ref(window._db,'drivers')),
+        window._get(window._ref(window._db,'orders')),
+        window._get(window._ref(window._db,'config/settings'))
       ]);
       const drivers = dSnap.val() || {};
       const orders = oSnap.val() || {};
@@ -2607,7 +2585,7 @@ function initMap() {
   window.boLoadDrivers = async () => {
     const el = document.getElementById('bo-drivers-list');
     try {
-      const snap = await window._get(window._ref(db,'drivers'));
+      const snap = await window._get(window._ref(window._db,'drivers'));
       const drivers = snap.val() || {};
       if (Object.keys(drivers).length === 0) {
         el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Водіїв ще немає</div>';
@@ -2639,7 +2617,7 @@ function initMap() {
   };
 
   window.boToggleDriver = async (uid, active) => {
-    await window._set(window._ref(db,'drivers/'+uid+'/active'), active);
+    await window._set(window._ref(window._db,'drivers/'+uid+'/active'), active);
     showToast(active ? '✅ Водія активовано' : '🚫 Водія заблоковано');
     boLoadDrivers();
   };
@@ -2650,7 +2628,7 @@ function initMap() {
     let code = '';
     for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
     const expires = new Date(Date.now() + 48*60*60*1000).toISOString();
-    await window._set(window._ref(db,'invite_codes/'+code), {
+    await window._set(window._ref(window._db,'invite_codes/'+code), {
       vehicle_type: type, used: false,
       expires_at: expires, created_at: new Date().toISOString()
     });
@@ -2671,7 +2649,7 @@ function initMap() {
   window.boLoadCodes = async () => {
     const el = document.getElementById('bo-codes-list');
     try {
-      const snap = await window._get(window._ref(db,'invite_codes'));
+      const snap = await window._get(window._ref(window._db,'invite_codes'));
       const codes = snap.val() || {};
       const active = Object.entries(codes).filter(([,c])=>!c.used);
       if (active.length === 0) {
@@ -2691,14 +2669,14 @@ function initMap() {
   };
 
   window.boDeleteCode = async (code) => {
-    await window._set(window._ref(db,'invite_codes/'+code+'/used'), true);
+    await window._set(window._ref(window._db,'invite_codes/'+code+'/used'), true);
     showToast('🗑️ Код анульовано');
     boLoadCodes();
   };
 
   window.boLoadTariffs = async () => {
     try {
-      const snap = await window._get(window._ref(db,'config/tariffs'));
+      const snap = await window._get(window._ref(window._db,'config/tariffs'));
       if (!snap.exists()) return;
       const t = snap.val();
       ['std','est','bus','cargo','courier'].forEach(type => {
@@ -2721,14 +2699,14 @@ function initMap() {
         wait: parseInt(document.getElementById('t-'+type+'-wait').value)
       };
     });
-    await window._set(window._ref(db,'config/tariffs'), tariffs);
+    await window._set(window._ref(window._db,'config/tariffs'), tariffs);
     window._tariffs = tariffs;
     showToast('✅ Тарифи збережено в Firebase!');
   };
 
   window.boLoadSettings = async () => {
     try {
-      const snap = await window._get(window._ref(db,'config/settings'));
+      const snap = await window._get(window._ref(window._db,'config/settings'));
       if (!snap.exists()) return;
       const s = snap.val();
       if(s.trial_days !== undefined) document.getElementById('s-trial').value = s.trial_days;
@@ -2749,7 +2727,7 @@ function initMap() {
       grace_days: parseInt(document.getElementById('s-grace').value),
       queue_timer_seconds: parseInt(document.getElementById('s-timer').value)
     };
-    await window._set(window._ref(db,'config/settings'), {...(await window._get(window._ref(db,'config/settings'))).val(), ...settings});
+    await window._set(window._ref(window._db,'config/settings'), {...(await window._get(window._ref(window._db,'config/settings'))).val(), ...settings});
     showToast('✅ Налаштування збережено!');
   };
 
@@ -2759,15 +2737,15 @@ function initMap() {
       courier_announcements: document.getElementById('sw-courier').classList.contains('on'),
       maintenance: document.getElementById('sw-maint').classList.contains('on')
     };
-    const cur = (await window._get(window._ref(db,'config/settings'))).val() || {};
-    await window._set(window._ref(db,'config/settings'), {...cur, ...features});
+    const cur = (await window._get(window._ref(window._db,'config/settings'))).val() || {};
+    await window._set(window._ref(window._db,'config/settings'), {...cur, ...features});
     showToast('✅ Функції збережено!');
   };
 
   window.boSaveMessage = async () => {
     const msg = document.getElementById('s-message').value;
-    const cur = (await window._get(window._ref(db,'config/settings'))).val() || {};
-    await window._set(window._ref(db,'config/settings'), {...cur, system_message: msg});
+    const cur = (await window._get(window._ref(window._db,'config/settings'))).val() || {};
+    await window._set(window._ref(window._db,'config/settings'), {...cur, system_message: msg});
     showToast('✅ Повідомлення збережено!');
   };
 
@@ -2779,7 +2757,7 @@ function initMap() {
   window.boLoadOrders = async () => {
     const el = document.getElementById('bo-orders-list');
     try {
-      const snap = await window._get(window._ref(db,'orders'));
+      const snap = await window._get(window._ref(window._db,'orders'));
       const orders = snap.val() || {};
       if (Object.keys(orders).length === 0) {
         el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Замовлень ще немає</div>';
@@ -3330,26 +3308,17 @@ function initMap() {
       <div id="street-ride-block" style="display:none;margin:0 16px 16px;background:var(--surface);border-radius:12px;padding:16px;border:1.5px solid var(--accent2)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="font-size:15px;font-weight:500;color:var(--text)">🚶 Вуличний пасажир</div>
-          <div style="font-size:13px;font-weight:500;color:var(--accent2)" id="street-timer">00:00</div>
+          <div style="font-size:12px;color:var(--accent2)" id="street-timer">00:00</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
           <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:16px;font-weight:500;color:var(--text)" id="street-km">0.0</div>
-            <div style="font-size:10px;color:var(--hint);margin-top:2px">км</div>
+            <div style="font-size:18px;font-weight:500;color:var(--text)" id="street-km">0.0</div>
+            <div style="font-size:11px;color:var(--hint)">км</div>
           </div>
           <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:16px;font-weight:500;color:var(--muted)" id="street-wait-min">0.0</div>
-            <div style="font-size:10px;color:var(--hint);margin-top:2px">хв простою</div>
+            <div style="font-size:18px;font-weight:500;color:var(--accent)" id="street-price">0</div>
+            <div style="font-size:11px;color:var(--hint)">грн</div>
           </div>
-          <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:16px;font-weight:500;color:var(--accent)" id="street-price">0</div>
-            <div style="font-size:10px;color:var(--hint);margin-top:2px">грн</div>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--hint);display:flex;justify-content:space-between">
-          <span>🪑 <span id="street-board-lbl" style="color:var(--muted)">—</span> грн</span>
-          <span>📍 <span id="street-km-lbl" style="color:var(--muted)">—</span> грн/км</span>
-          <span>⏱ <span id="street-wait-lbl" style="color:var(--muted)">—</span> грн/хв</span>
         </div>
         <button onclick="finishStreetRide()" style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:500;cursor:pointer">
           ✅ Завершити поїздку
