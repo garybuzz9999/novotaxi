@@ -727,7 +727,7 @@ function initMap() {
   window.signOutUser = async () => {
     try {
       await signOut(auth);
-      // nt_phone не видаляємо — це дані клієнта, не водія
+      localStorage.removeItem('nt_phone');
       showScreen('screen-role');
       showToast('✅ Ви вийшли з акаунту');
     } catch(e) {
@@ -755,7 +755,6 @@ function initMap() {
       get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
         if (snap.exists()) {
           window._isDriver = true;
-          // Перевіряємо чи заповнена реєстрація
           var drvData = snap.val() || {};
           if (!drvData.registered) {
             showScreen('screen-driver-reg');
@@ -770,12 +769,20 @@ function initMap() {
           if (phone) {
             showScreen('screen-main');
             if (window.startClientNotifListener) window.startClientNotifListener();
+          } else {
+            showScreen('screen-phone');
           }
-          else { showScreen('screen-phone'); }
         }
       }).catch(function() { showScreen('screen-role'); });
     } else {
-      showScreen('screen-role');
+      // Не авторизований — перевіряємо чи є збережений телефон клієнта
+      var savedPhone = localStorage.getItem('nt_phone');
+      if (savedPhone) {
+        showScreen('screen-main');
+        if (window.startClientNotifListener) window.startClientNotifListener();
+      } else {
+        showScreen('screen-role');
+      }
     }
   });
 
