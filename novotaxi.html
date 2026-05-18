@@ -668,7 +668,7 @@ function initMap() {
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getDatabase, ref, set, get, onValue }
+  import { getDatabase, ref, set, get, push, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
   import { getAuth, signInWithPopup, GoogleAuthProvider,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
@@ -1674,6 +1674,8 @@ function initMap() {
       document.getElementById('drv-prof-ava').textContent = initials;
       document.getElementById('drv-prof-name').textContent = d.name || 'Водій';
       document.getElementById('drv-prof-email').textContent = d.email || '';
+      var phoneInput = document.getElementById('drv-prof-phone-input');
+      if (phoneInput) phoneInput.value = d.phone || '';
       const svcNames = {taxi:'🚗 Таксі', courier:'📦 Кур\'єр', std:'🚗 Стандарт', est:'🚙 Універсал', bus:'🚐 Бус', cargo:'🚛 Вантажний'};
       const services = d.services || ['taxi'];
       document.getElementById('drv-services-row').innerHTML = services
@@ -2113,6 +2115,41 @@ function initMap() {
     document.getElementById('btn-street').style.display = 'block';
     document.getElementById('street-ride-block').style.display = 'none';
     showToast('✅ Поїздка ' + _streetKm.toFixed(1) + ' км · ' + price + ' грн');
+  };
+
+  window.drvSavePhone = async function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    var phone = document.getElementById('drv-prof-phone-input').value.trim();
+    if (!phone) { showToast('Введіть номер телефону'); return; }
+    try {
+      await set(ref(db, 'drivers/' + uid + '/phone'), phone);
+      showToast('✅ Телефон збережено');
+    } catch(e) { showToast('Помилка: ' + e.message); }
+  };
+
+  window.drvRequestCode = async function() {
+    var uid = window._currentUid;
+    if (!uid) return;
+    var btn = document.getElementById('drv-req-code-btn');
+    var status = document.getElementById('drv-req-code-status');
+    btn.disabled = true;
+    btn.textContent = '⏳ Відправляємо...';
+    try {
+      var snap = await get(ref(db, 'drivers/' + uid));
+      var d = snap.val() || {};
+      await set(ref(db, 'subscription_requests/' + uid), {
+        uid: uid, email: d.email || '', name: d.name || 'Водій',
+        phone: d.phone || '', requested_at: Date.now(), status: 'pending'
+      });
+      btn.textContent = '✅ Запит відправлено';
+      status.style.display = 'block';
+      status.textContent = 'Адміністратор отримав запит · Очікуйте реквізити на ' + (d.email || 'ваш email');
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = '📩 Отримати код підписки';
+      showToast('Помилка: ' + e.message);
+    }
   };
 
   window.drvSignOut = async function() {
@@ -2838,6 +2875,41 @@ function initMap() {
     boLoadCodes();
   };
 
+  window.boLoadSubReqs = async function() {
+    var el = document.getElementById('bo-subreqs-list');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:14px;color:var(--hint)">Завантаження...</div>';
+    try {
+      var snap = await window._get(window._ref(window._db, 'subscription_requests'));
+      if (!snap.exists()) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--hint)">Запитів немає</div>'; return; }
+      var reqs = snap.val();
+      var html = Object.entries(reqs).map(function(e) {
+        var uid = e[0], r = e[1];
+        var date = r.requested_at ? new Date(r.requested_at).toLocaleDateString('uk') : '—';
+        var done = r.status === 'done';
+        return '<div class="bo-card" style="margin-bottom:10px">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+            '<div class="bo-ava">' + (r.name||'?').substring(0,2).toUpperCase() + '</div>' +
+            '<div style="flex:1"><div class="bo-driver-name">' + (r.name||'—') + '</div>' +
+            '<div class="bo-driver-meta">' + date + '</div></div>' +
+            '<div class="bo-status ' + (done?'ok':'warn') + '">' + (done?'Оброблено':'Очікує') + '</div>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">📧 <span style="color:var(--accent)">' + (r.email||'—') + '</span></div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">📱 ' + (r.phone||'—') + '</div>' +
+          (!done ? '<button onclick="boMarkSubDone('' + uid + '')" style="width:100%;background:var(--black);color:#4cd964;border:none;border-radius:8px;padding:8px;font-size:12px;cursor:pointer">✅ Позначити як оброблено</button>' : '') +
+        '</div>';
+      }).join('');
+      el.innerHTML = html || '<div style="text-align:center;padding:20px;color:var(--hint)">Запитів немає</div>';
+    } catch(e) { el.innerHTML = '<div style="color:#ff453a;padding:12px">Помилка: ' + e.message + '</div>'; }
+  };
+
+  window.boMarkSubDone = async function(uid) {
+    try {
+      await window._set(window._ref(window._db, 'subscription_requests/' + uid + '/status'), 'done');
+      showToast('✅ Позначено'); boLoadSubReqs();
+    } catch(e) {}
+  };
+
   window.boLoadTariffs = async () => {
     try {
       const snap = await window._get(window._ref(window._db,'config/tariffs'));
@@ -3514,12 +3586,28 @@ function initMap() {
       </div>
     </div>
     <div style="padding:14px 16px">
-      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--hint);margin-bottom:6px">📱 Телефон</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="tel" id="drv-prof-phone-input" placeholder="+380 67 123 45 67"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:15px;color:var(--text);outline:none">
+          <button onclick="drvSavePhone()" style="background:var(--black);color:var(--accent);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer">Зберегти</button>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--text)">300 грн / місяць</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px" id="drv-prof-sub">—</div>
         </div>
         <span style="font-size:12px;color:#4cd964">Активна</span>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">💳 Продовження підписки</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити для оплати на ваш email</div>
+        <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">
+          📩 Отримати код підписки
+        </button>
+        <div id="drv-req-code-status" style="display:none;margin-top:8px;font-size:12px;color:#4cd964;text-align:center"></div>
       </div>
       <button onclick="drvSignOut()" style="width:100%;background:transparent;border:1.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer">🚪 Вийти з акаунту</button>
     </div>
@@ -3554,6 +3642,7 @@ function initMap() {
     <button class="bo-tab" onclick="boNav('tariffs',this)">Тарифи</button>
     <button class="bo-tab" onclick="boNav('settings',this)">Налаштування</button>
     <button class="bo-tab" onclick="boNav('orders',this)">Замовлення</button>
+    <button class="bo-tab" onclick="boNav('subreqs',this);boLoadSubReqs()">Запити 💳</button>
   </div>
 
   <!-- ДАШБОРД -->
@@ -3756,6 +3845,13 @@ function initMap() {
       <textarea class="bo-input" id="s-message" placeholder="Технічні роботи з 22:00..." style="min-height:80px;resize:none"></textarea>
       <button class="bo-btn" onclick="boSaveMessage()">☁️ Зберегти повідомлення</button>
     </div>
+  </div>
+
+  <!-- ЗАПИТИ ПІДПИСКИ -->
+  <div class="bo-page" id="bo-subreqs">
+    <div class="bo-lbl">Запити на підписку</div>
+    <div id="bo-subreqs-list"><div style="text-align:center;padding:20px;color:var(--hint)">Натисніть Оновити</div></div>
+    <button class="bo-btn" onclick="boLoadSubReqs()">🔄 Оновити</button>
   </div>
 
   <!-- ЗАМОВЛЕННЯ -->
