@@ -1103,6 +1103,11 @@ function initMap() {
     document.getElementById('ride-start-btn-txt').textContent = 'Старт — вмикаю лічильник';
 
     showScreen('screen-ride');
+    // Примусово встановлюємо зелений колір кнопки Старт
+    setTimeout(function() {
+      var startBtn = document.getElementById('ride-start-btn');
+      if (startBtn) { startBtn.style.background = '#1a7a3a'; startBtn.style.color = '#ffffff'; }
+    }, 50);
   };
 
   window.rideAddrSearch = function(val) {
@@ -1150,6 +1155,9 @@ function initMap() {
     document.getElementById('ride-phase1').style.display = 'none';
     document.getElementById('ride-phase2').style.display = 'block';
     document.getElementById('ride-header-txt').textContent = 'Поїздка';
+    // Примусово встановлюємо колір кнопки Приїхали
+    var stopBtn = document.getElementById('ride-stop-btn');
+    if (stopBtn) { stopBtn.style.background = '#3a8fc8'; stopBtn.style.color = '#ffffff'; }
     _rideSec = 0; _rideKm = 0;
     var _ridePrevLat = null;
     var _ridePrevLng = null;
@@ -3111,7 +3119,7 @@ function initMap() {
     </div>
 
     <!-- КНОПКА СТАРТ — завжди активна -->
-    <button onclick="rideStart()"
+    <button id="ride-start-btn" onclick="rideStart()"
       style="width:100%;background:#1a7a3a;color:#ffffff;border:none;border-radius:12px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
       <span style="font-size:22px">▶️</span>
       <span id="ride-start-btn-txt">Старт — вмикаю лічильник</span>
@@ -3173,7 +3181,7 @@ function initMap() {
 
     <!-- Кнопка завершення -->
     <div style="padding:0 16px 16px">
-      <button onclick="rideStop()"
+      <button id="ride-stop-btn" onclick="rideStop()"
         style="width:100%;background:#3a8fc8;color:#ffffff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         🏁 <span id="ride-stop-txt">Приїхали — зупинити лічильник</span>
       </button>
