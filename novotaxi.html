@@ -2154,13 +2154,44 @@ function initMap() {
       dot.style.background = '#4da3ff'; dot.style.animation = 'gps-blink 1s infinite';
       txt.textContent = '🚕 Поїздка розпочата!'; txt.style.color = '#4da3ff';
       sub.textContent = 'Лічильник працює · Гарної дороги!';
+      var tariffEl = document.getElementById('order-status-tariff');
+      if (tariffEl) {
+        var bv = order.board || ''; var kv = order.per_km || '';
+        if (bv || kv) {
+          var tp = [];
+          if (bv) tp.push('Посадка ' + bv + ' грн');
+          if (kv) tp.push(kv + ' грн/км');
+          tariffEl.textContent = tp.join(' · ');
+          tariffEl.style.display = 'block';
+        }
+      }
       bar.style.background = 'rgba(77,163,255,.1)'; bar.style.borderBottomColor = 'rgba(77,163,255,.3)';
       if (btn) btn.style.display = 'none';
 
     } else if (status === 'completed') {
+      // Звук завершення
+      try {
+        var ctx3 = new (window.AudioContext || window.webkitAudioContext)();
+        [600, 500, 700].forEach(function(f, i) {
+          var o = ctx3.createOscillator(); var g = ctx3.createGain();
+          o.connect(g); g.connect(ctx3.destination);
+          o.frequency.value = f; o.type = 'sine';
+          g.gain.setValueAtTime(0.4, ctx3.currentTime + i*0.2);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx3.currentTime + i*0.2 + 0.25);
+          o.start(ctx3.currentTime + i*0.2); o.stop(ctx3.currentTime + i*0.2 + 0.3);
+        });
+        if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
+      } catch(e) {}
       dot.style.background = '#4cd964'; dot.style.animation = 'none';
-      txt.textContent = 'Поїздку завершено!'; txt.style.color = '#4cd964';
-      sub.textContent = ''; if (btn) btn.style.display = 'none';
+      txt.textContent = '✅ Поїздку завершено!'; txt.style.color = '#4cd964';
+      var fp = order.price || order.total || '';
+      var fk = order.km ? parseFloat(order.km).toFixed(1) + ' км' : '';
+      var fp2 = []; if (fp) fp2.push('💰 ' + fp + ' грн'); if (fk) fp2.push('📍 ' + fk);
+      sub.textContent = fp2.length ? fp2.join(' · ') : 'Дякуємо за поїздку!';
+      var te2 = document.getElementById('order-status-tariff');
+      if (te2) te2.style.display = 'none';
+      bar.style.background = 'rgba(76,217,100,.1)'; bar.style.borderBottomColor = 'rgba(76,217,100,.3)';
+      if (btn) btn.style.display = 'none';
 
     } else if (status === 'no_drivers') {
       dot.style.background = '#ff453a'; dot.style.animation = 'none';
