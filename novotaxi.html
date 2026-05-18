@@ -720,6 +720,28 @@ function initMap() {
   onValue(ref(db, 'config/tariffs'), snap => {
     if (snap.exists()) {
       window._tariffs = snap.val();
+      // Оновлюємо чіпи і тариф на екрані клієнта
+      const types = ['std','est','bus','bus','cargo','courier'];
+      const chips = document.querySelectorAll('.chip');
+      const typeMap = ['std','est','bus','cargo','courier'];
+      chips.forEach((chip, i) => {
+        const t = typeMap[i];
+        if (t && window._tariffs[t]) {
+          const pr = chip.querySelector('.chip-price');
+          if (pr) pr.textContent = window._tariffs[t].board + '+';
+        }
+      });
+      // Оновлюємо поточний вибраний тариф
+      const cur = window._selType || 'std';
+      const ct = window._tariffs[cur];
+      if (ct) {
+        const tb = document.getElementById('tBoard');
+        const tk = document.getElementById('tKm');
+        const tw = document.getElementById('tWait');
+        if (tb) tb.textContent = ct.board + ' грн';
+        if (tk) tk.textContent = ct.km + ' грн';
+        if (tw) tw.textContent = (ct.wait || 1) + ' грн';
+      }
     }
   });
 
