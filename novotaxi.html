@@ -1611,14 +1611,23 @@ function initMap() {
         document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
         document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
       }
-      // Завжди онлайн при відкритті — водій сам вимикає на перерву
-      _drvOnline = true;
-      await set(ref(db, 'drivers/' + uid + '/online'), true);
-      document.getElementById('drv-sw').className = 'bo-sw on';
-      document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
-      document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
-      try { document.getElementById('drv-status-dot').style.background = '#4cd964'; } catch(e) {}
-      try { document.getElementById('drv-status-txt').textContent = 'Онлайн'; } catch(e) {}
+      // Водій завжди онлайн при вході — сам вимикає коли не працює
+      _drvOnline = d.online !== false; // якщо водій сам не вимкнув — онлайн
+      if (_drvOnline) {
+        await set(ref(db, 'drivers/' + uid + '/online'), true);
+        document.getElementById('drv-sw').className = 'bo-sw on';
+        document.getElementById('drv-status-dot').style.background = '#4cd964';
+        document.getElementById('drv-status-txt').textContent = 'Онлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+      } else {
+        document.getElementById('drv-sw').className = 'bo-sw off';
+        document.getElementById('drv-status-dot').style.background = '#888';
+        document.getElementById('drv-status-txt').textContent = 'Офлайн';
+        document.getElementById('drv-toggle-txt').textContent = 'Я офлайн';
+        document.getElementById('drv-toggle-sub').textContent = 'Клієнти не бачать вас';
+      }
+      // Перевіряємо підписку після встановлення статусу
       if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
     } catch(e) { console.error('initDriver:', e); }
@@ -1931,6 +1940,103 @@ function initMap() {
       });
       el.innerHTML = html;
     } catch(e) {}
+  };
+
+  // ===== ВУЛИЧНИЙ ПАСАЖИР =====
+  var _streetActive = false;
+  var _streetStart = null;
+  var _streetTimerInt = null;
+  var _streetWatchId = null;
+  var _streetLat = null;
+  var _streetLng = null;
+  var _streetPrevLat = null;
+  var _streetPrevLng = null;
+  var _streetKm = 0;
+
+  function calcStreetDist(lat1, lng1, lat2, lng2) {
+    var R = 6371;
+    var dLat = (lat2-lat1)*Math.PI/180;
+    var dLng = (lng2-lng1)*Math.PI/180;
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+      Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+      Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  window.startStreetRide = function() {
+    if (_streetActive) return;
+    _streetActive = true;
+    _streetStart = Date.now();
+    _streetKm = 0;
+    _streetPrevLat = null;
+    _streetPrevLng = null;
+
+    document.getElementById('btn-street').style.display = 'none';
+    document.getElementById('street-ride-block').style.display = 'block';
+    document.getElementById('street-km').textContent = '0.0';
+    document.getElementById('street-price').textContent = '0';
+
+    // Таймер
+    _streetTimerInt = setInterval(function() {
+      var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
+      var m = Math.floor(elapsed / 60);
+      var s = elapsed % 60;
+      document.getElementById('street-timer').textContent =
+        (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+
+    // GPS відстеження
+    if (navigator.geolocation) {
+      _streetWatchId = navigator.geolocation.watchPosition(function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        if (_streetPrevLat !== null) {
+          var d = calcStreetDist(_streetPrevLat, _streetPrevLng, lat, lng);
+          if (d > 0.005) { // фільтр шуму < 5м
+            _streetKm += d;
+            var perKm = _ridePerKm || 5;
+            document.getElementById('street-km').textContent = _streetKm.toFixed(1);
+            document.getElementById('street-price').textContent = Math.round(_streetKm * perKm);
+          }
+        }
+        _streetPrevLat = lat;
+        _streetPrevLng = lng;
+      }, null, { enableHighAccuracy: true, maximumAge: 3000 });
+    }
+    showToast('🚶 Поїздку розпочато');
+  };
+
+  window.finishStreetRide = async function() {
+    if (!_streetActive) return;
+    _streetActive = false;
+    clearInterval(_streetTimerInt);
+    if (_streetWatchId) navigator.geolocation.clearWatch(_streetWatchId);
+
+    var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
+    var perKm = _ridePerKm || 5;
+    var price = Math.round(_streetKm * perKm);
+
+    // Зберігаємо в Firebase
+    var uid = window._currentUid;
+    if (uid) {
+      try {
+        var orderRef = push(ref(db, 'orders'));
+        await set(orderRef, {
+          driver_id: uid,
+          type: 'street',
+          km: parseFloat(_streetKm.toFixed(2)),
+          duration_sec: elapsed,
+          price: price,
+          created_at: Date.now(),
+          status: 'done',
+          from_address: 'Вуличний пасажир'
+        });
+      } catch(e) {}
+    }
+
+    document.getElementById('btn-street').style.display = 'block';
+    document.getElementById('street-ride-block').style.display = 'none';
+    showToast('✅ Поїздка ' + _streetKm.toFixed(1) + ' км · ' + price + ' грн');
   };
 
   window.drvSignOut = async function() {
@@ -3190,6 +3296,34 @@ function initMap() {
           </div>
         </div>
       </div>
+      <!-- КНОПКА ВУЛИЧНИЙ ПАСАЖИР -->
+      <div style="padding:0 16px 16px">
+        <button onclick="startStreetRide()" id="btn-street" style="width:100%;background:var(--surface);border:1.5px solid var(--accent2);color:var(--accent);border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+          🚶 Взяв пасажира
+        </button>
+      </div>
+
+      <!-- АКТИВНА ВУЛИЧНА ПОЇЗДКА -->
+      <div id="street-ride-block" style="display:none;margin:0 16px 16px;background:var(--surface);border-radius:12px;padding:16px;border:1.5px solid var(--accent2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:500;color:var(--text)">🚶 Вуличний пасажир</div>
+          <div style="font-size:12px;color:var(--accent2)" id="street-timer">00:00</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:18px;font-weight:500;color:var(--text)" id="street-km">0.0</div>
+            <div style="font-size:11px;color:var(--hint)">км</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:18px;font-weight:500;color:var(--accent)" id="street-price">0</div>
+            <div style="font-size:11px;color:var(--hint)">грн</div>
+          </div>
+        </div>
+        <button onclick="finishStreetRide()" style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:500;cursor:pointer">
+          ✅ Завершити поїздку
+        </button>
+      </div>
+
       <div id="drv-waiting" style="text-align:center;padding:28px;color:var(--hint);font-size:14px">
         <div style="font-size:40px;margin-bottom:12px">⏳</div>Очікуємо замовлень...
       </div>
