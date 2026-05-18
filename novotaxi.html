@@ -720,6 +720,27 @@ function initMap() {
   onValue(ref(db, 'config/tariffs'), snap => {
     if (snap.exists()) {
       window._tariffs = snap.val();
+      // Оновлюємо чіпи клієнта
+      var typeMap = ['std','est','bus','cargo','courier'];
+      var chips = document.querySelectorAll('.chip');
+      chips.forEach(function(chip, i) {
+        var t = typeMap[i];
+        if (t && window._tariffs[t]) {
+          var pr = chip.querySelector('.chip-price');
+          if (pr) pr.textContent = window._tariffs[t].board + '+';
+        }
+      });
+      // Оновлюємо поточний тариф
+      var cur = window._selType || 'std';
+      var ct = window._tariffs[cur];
+      if (ct) {
+        var tb = document.getElementById('tBoard');
+        var tk = document.getElementById('tKm');
+        var tw = document.getElementById('tWait');
+        if (tb) tb.textContent = ct.board + ' грн';
+        if (tk) tk.textContent = ct.km + ' грн';
+        if (tw && ct.wait) tw.textContent = ct.wait + ' грн';
+      }
     }
   });
 
@@ -727,7 +748,7 @@ function initMap() {
   window.signOutUser = async () => {
     try {
       await signOut(auth);
-      localStorage.removeItem('nt_phone');
+      // nt_phone не видаляємо — це дані клієнта
       showScreen('screen-role');
       showToast('✅ Ви вийшли з акаунту');
     } catch(e) {
@@ -775,7 +796,14 @@ function initMap() {
         }
       }).catch(function() { showScreen('screen-role'); });
     } else {
-      showScreen('screen-role');
+      // Не авторизований — перевіряємо чи є збережений телефон клієнта
+      var savedPhone = localStorage.getItem('nt_phone');
+      if (savedPhone) {
+        showScreen('screen-main');
+        if (window.startClientNotifListener) window.startClientNotifListener();
+      } else {
+        showScreen('screen-role');
+      }
     }
   });
 
