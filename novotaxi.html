@@ -1242,6 +1242,15 @@ function initMap() {
     }
 
     updateMeterUI();
+
+    // Записуємо статус in_progress + тариф в Firebase для клієнта
+    if (window._rideOrderId) {
+      try {
+        set(ref(db, 'orders/' + window._rideOrderId + '/status'), 'in_progress');
+        set(ref(db, 'orders/' + window._rideOrderId + '/board'), _rideBoard);
+        set(ref(db, 'orders/' + window._rideOrderId + '/per_km'), _ridePerKm);
+      } catch(e) {}
+    }
   };
 
   window.rideStop = function() {
@@ -1289,7 +1298,10 @@ function initMap() {
       if (_rideOrderId) {
         await set(ref(db, 'orders/' + _rideOrderId + '/status'), 'completed');
         await set(ref(db, 'orders/' + _rideOrderId + '/total'), total);
+        await set(ref(db, 'orders/' + _rideOrderId + '/price'), total);
         await set(ref(db, 'orders/' + _rideOrderId + '/km'), parseFloat(_rideKm.toFixed(1)));
+        await set(ref(db, 'orders/' + _rideOrderId + '/board'), _rideBoard);
+        await set(ref(db, 'orders/' + _rideOrderId + '/per_km'), _ridePerKm);
         await set(ref(db, 'orders/' + _rideOrderId + '/to_address'), _rideAddr || 'По місту');
       }
     } catch(e) {}
