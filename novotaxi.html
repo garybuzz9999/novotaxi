@@ -2126,10 +2126,23 @@ function initMap() {
       if (btn) btn.style.display = 'block';
 
     } else if (status === 'in_progress') {
+      // Звук і вібрація — поїздка почалась
+      try {
+        var ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+        [300, 400, 600].forEach(function(f, i) {
+          var o = ctx2.createOscillator(); var g = ctx2.createGain();
+          o.connect(g); g.connect(ctx2.destination);
+          o.frequency.value = f; o.type = 'sine';
+          g.gain.setValueAtTime(0.5, ctx2.currentTime + i*0.15);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime + i*0.15 + 0.18);
+          o.start(ctx2.currentTime + i*0.15); o.stop(ctx2.currentTime + i*0.15 + 0.2);
+        });
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+      } catch(e) {}
       dot.style.background = '#4da3ff'; dot.style.animation = 'gps-blink 1s infinite';
-      txt.textContent = 'Поїздка розпочата'; txt.style.color = '#4da3ff';
-      sub.textContent = 'Лічильник працює';
-      bar.style.background = 'rgba(77,163,255,.06)'; bar.style.borderBottomColor = 'rgba(77,163,255,.2)';
+      txt.textContent = '🚕 Поїздка розпочата!'; txt.style.color = '#4da3ff';
+      sub.textContent = 'Лічильник працює · Гарної дороги!';
+      bar.style.background = 'rgba(77,163,255,.1)'; bar.style.borderBottomColor = 'rgba(77,163,255,.3)';
       if (btn) btn.style.display = 'none';
 
     } else if (status === 'completed') {
