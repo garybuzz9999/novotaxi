@@ -755,6 +755,7 @@ function initMap() {
       get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
         if (snap.exists()) {
           window._isDriver = true;
+          // Перевіряємо чи заповнена реєстрація
           var drvData = snap.val() || {};
           if (!drvData.registered) {
             showScreen('screen-driver-reg');
@@ -769,20 +770,12 @@ function initMap() {
           if (phone) {
             showScreen('screen-main');
             if (window.startClientNotifListener) window.startClientNotifListener();
-          } else {
-            showScreen('screen-phone');
           }
+          else { showScreen('screen-phone'); }
         }
       }).catch(function() { showScreen('screen-role'); });
     } else {
-      // Не авторизований — перевіряємо чи є збережений телефон клієнта
-      var savedPhone = localStorage.getItem('nt_phone');
-      if (savedPhone) {
-        showScreen('screen-main');
-        if (window.startClientNotifListener) window.startClientNotifListener();
-      } else {
-        showScreen('screen-role');
-      }
+      showScreen('screen-role');
     }
   });
 
@@ -3119,7 +3112,7 @@ function initMap() {
 
     <!-- КНОПКА СТАРТ — завжди активна -->
     <button onclick="rideStart()"
-      style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:12px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+      style="width:100%;background:#1a7a3a;color:#ffffff;border:none;border-radius:12px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
       <span style="font-size:22px">▶️</span>
       <span id="ride-start-btn-txt">Старт — вмикаю лічильник</span>
     </button>
@@ -3181,7 +3174,7 @@ function initMap() {
     <!-- Кнопка завершення -->
     <div style="padding:0 16px 16px">
       <button onclick="rideStop()"
-        style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        style="width:100%;background:#3a8fc8;color:#ffffff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         🏁 <span id="ride-stop-txt">Приїхали — зупинити лічильник</span>
       </button>
       <button onclick="rideForceClose()" style="width:100%;background:transparent;border:.5px solid rgba(255,69,58,.5);color:#ff453a;border-radius:12px;padding:12px;font-size:14px;font-weight:500;cursor:pointer;margin-top:10px">✖ Закрити замовлення</button>
