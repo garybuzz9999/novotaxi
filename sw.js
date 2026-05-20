@@ -34,7 +34,7 @@ self.addEventListener('fetch', event => {
 // ========== FCM ФОНОВИЙ ПУШ ==========
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
-
+const VAPID_KEY = 'BCVoguNPGdvdcIC5dLfXQG1ZMM99yZJGXYnFracgxRMYOtlF0pyQbiO2jj8JpL1CMtSZ_l06hvE4NF7lYME7blw';
 firebase.initializeApp({
   apiKey: "AIzaSyDixXJ-eggW5gE_VaubAM827lUWG7-v4rU",
   authDomain: "novotaxi-fcb7f.firebaseapp.com",
