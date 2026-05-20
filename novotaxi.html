@@ -379,6 +379,17 @@
   .reg-step-active { background: var(--accent); color: var(--black); border: none; }
   .reg-step-inactive { background: transparent; color: var(--hint); border: 1.5px solid var(--border); }
 </style>
+
+<!-- OneSignal Push Notifications -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "2fb517d7-be9f-4993-b36a-6bb4c4d30c2d",
+    });
+  });
+</script>
 </head>
 <body>
 
@@ -692,30 +703,49 @@ function initMap() {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  // ========== FCM ФОНОВІ ПУШІ ==========
+  // ========== ONESIGNAL ПУШІ ==========
   async function initFCM(userUid) {
     try {
-      if (!('Notification' in window)) return;
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return;
-      const messaging = getMessaging(app);
-      const token = await getToken(messaging, {
-        vapidKey: 'BCVoguNPGdvdcIC5dLfXQG1ZMM99yZJGXYnFracgxRMYOtlF0pyQbiO2jj8JpL1CMtSZ_l06hvE4NF7lYME7blw'
-      });
-      if (token) {
-        await set(ref(db, 'drivers/' + userUid + '/fcm_token'), token);
-        console.log('✅ FCM токен збережено');
-      }
-      onMessage(messaging, payload => {
-        const body = payload.notification?.body || 'Нове замовлення!';
-        showToast('🚕 ' + body);
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      // Зберігаємо OneSignal Player ID для водія
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        const playerId = await OneSignal.User.PushSubscription.id;
+        if (playerId) {
+          await set(ref(db, 'drivers/' + userUid + '/onesignal_id'), playerId);
+          console.log('✅ OneSignal ID збережено:', playerId);
+        }
       });
     } catch(e) {
-      console.error('FCM помилка:', e);
+      console.error('OneSignal помилка:', e);
     }
   }
   window.initFCM = initFCM;
+
+  // Відправка пушу водію через OneSignal REST API
+  async function sendPushToDriver(driverUid, title, body) {
+    try {
+      const snap = await get(ref(db, 'drivers/' + driverUid + '/onesignal_id'));
+      if (!snap.exists()) return;
+      const playerId = snap.val();
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic os_v2_app_2fb517d7be9f4993b36a6bb4c4d30c2d_placeholder'
+        },
+        body: JSON.stringify({
+          app_id: '2fb517d7-be9f-4993-b36a-6bb4c4d30c2d',
+          include_player_ids: [playerId],
+          headings: { uk: title || '🚕 Нове замовлення!' },
+          contents: { uk: body || 'Клієнт чекає на вас' },
+          priority: 10
+        })
+      });
+    } catch(e) {
+      console.error('Push помилка:', e);
+    }
+  }
+  window.sendPushToDriver = sendPushToDriver;
 
   // Робимо db/ref/get/set глобальними для бек-офісу
   window._db = db;
