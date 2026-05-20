@@ -1727,12 +1727,21 @@ function initMap() {
         document.getElementById('drv-status-txt').textContent = 'Онлайн';
         document.getElementById('drv-toggle-txt').textContent = 'Я онлайн — беру замовлення';
         document.getElementById('drv-toggle-sub').textContent = 'Клієнти бачать вас на карті';
+        // Wake Lock — не даємо екрану засинати
+        if ('wakeLock' in navigator) {
+          try {
+            window._wakeLock = await navigator.wakeLock.request('screen');
+            console.log('✅ Wake Lock активний');
+          } catch(e) { console.log('Wake Lock недоступний:', e); }
+        }
       } else {
         document.getElementById('drv-sw').className = 'bo-sw off';
         document.getElementById('drv-status-dot').style.background = '#888';
         document.getElementById('drv-status-txt').textContent = 'Офлайн';
         document.getElementById('drv-toggle-txt').textContent = 'Я офлайн';
         document.getElementById('drv-toggle-sub').textContent = 'Клієнти не бачать вас';
+        // Вивільняємо Wake Lock
+        if (window._wakeLock) { window._wakeLock.release(); window._wakeLock = null; }
       }
       // Перевіряємо підписку після встановлення статусу
       if (window.checkSubOnInit) window.checkSubOnInit();
