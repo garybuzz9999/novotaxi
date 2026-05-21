@@ -610,7 +610,7 @@
     <div class="auth-hero">
       <div class="auth-emoji">🚗</div>
       <div class="auth-title">Вхід або реєстрація</div>
-      <div class="auth-sub">7 днів безкоштовно.<br>Далі 300 грн/міс — оплата в додатку.</div>
+      <div class="auth-sub">7 днів безкоштовно.<br>Далі <span id="auth-price">300</span> грн/міс — оплата в додатку.</div>
     </div>
     <button class="social-btn" onclick="signInDriverGoogle()">
       <span class="icon">🔵</span>
@@ -629,7 +629,7 @@
     </div>
     <div style="font-size:12px;color:var(--hint);text-align:center;margin-top:14px;line-height:1.7">
       Перші 7 днів безкоштовно — без карти.<br>
-      Далі 300 грн/міс — оплата в додатку.
+      Далі <span class="auth-price-2">300</span> грн/міс — оплата в додатку.
     </div>
   </div>
 </div>
@@ -1657,7 +1657,7 @@ function initMap() {
         '<div style="font-size:14px;color:#888;margin-bottom:20px;line-height:1.6">Термін дії закінчився ' + expStr + '.<br>Щоб продовжити роботу — оплатіть підписку.</div>' +
         '<div style="background:#242424;border-radius:14px;padding:16px;margin-bottom:20px">' +
           '<div style="font-size:13px;color:#666;margin-bottom:4px">Вартість підписки</div>' +
-          '<div style="font-size:32px;font-weight:500;color:#f5c842">300 грн</div>' +
+          '<div style="font-size:32px;font-weight:500;color:#f5c842" id="sub-price-display">300 грн</div>' +
           '<div style="font-size:12px;color:#555;margin-top:4px">на місяць</div>' +
         '</div>' +
         '<div style="font-size:13px;color:#666;background:#1e1e1e;border-radius:10px;padding:12px;margin-bottom:20px;line-height:1.6">' +
@@ -3072,7 +3072,14 @@ function initMap() {
       if (!snap.exists()) return;
       const s = snap.val();
       if(s.trial_days !== undefined) document.getElementById('s-trial').value = s.trial_days;
-      if(s.subscription_price !== undefined) document.getElementById('s-price').value = s.subscription_price;
+      if(s.subscription_price !== undefined) {
+        document.getElementById('s-price').value = s.subscription_price;
+        var p = s.subscription_price;
+        var els = ['prof-price-display','auth-price','auth-price-3'];
+        els.forEach(function(id){ var el=document.getElementById(id); if(el){ if(id==='prof-price-display') el.textContent=p+' грн / місяць'; else el.textContent=p; }});
+        document.querySelectorAll('.auth-price-2').forEach(function(el){ el.textContent=p; });
+        var sp=document.getElementById('sub-price-display'); if(sp) sp.textContent=p+' грн';
+      }
       if(s.grace_days !== undefined) document.getElementById('s-grace').value = s.grace_days;
       if(s.queue_timer_seconds !== undefined) document.getElementById('s-timer').value = s.queue_timer_seconds;
       if(s.system_message) document.getElementById('s-message').value = s.system_message;
@@ -3714,7 +3721,7 @@ function initMap() {
     <div style="padding:14px 16px">
       <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text)">300 грн / місяць</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text)" id="prof-price-display">300 грн / місяць</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px" id="drv-prof-sub">—</div>
         </div>
         <span style="font-size:12px;color:#4cd964">Активна</span>
@@ -4103,7 +4110,7 @@ function initMap() {
       <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:10px">🛡️ Підписка водія</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.7">
         <div>✅ 7 днів безкоштовно після реєстрації</div>
-        <div>💳 Далі 300 грн/місяць</div>
+        <div>💳 Далі <span id="auth-price-3">300</span> грн/місяць</div>
         <div>📞 Оплата через адміністратора</div>
         <div>⚠️ При закінченні підписки — автоматично офлайн</div>
       </div>
