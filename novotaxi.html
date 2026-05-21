@@ -1777,6 +1777,20 @@ function initMap() {
         // Вивільняємо Wake Lock
         if (window._wakeLock) { window._wakeLock.release(); window._wakeLock = null; }
       }
+      // Завантажуємо ціну підписки з Firebase
+      try {
+        var cfgSnap = await get(ref(db, 'config/settings'));
+        if (cfgSnap.exists()) {
+          var cfg = cfgSnap.val();
+          if (cfg.subscription_price !== undefined) {
+            var p = cfg.subscription_price;
+            var el = document.getElementById('prof-price-display');
+            if (el) el.textContent = p + ' грн / місяць';
+            var sp = document.getElementById('sub-price-display');
+            if (sp) sp.textContent = p + ' грн';
+          }
+        }
+      } catch(e) {}
       // Перевіряємо підписку після встановлення статусу
       if (window.checkSubOnInit) window.checkSubOnInit();
       drvStartPolling();
