@@ -390,6 +390,8 @@
     });
   });
 </script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init("j3BEycY5cc-B2CHy6");</script>
 </head>
 <body>
 
@@ -2210,6 +2212,14 @@ function initMap() {
         uid: uid, email: d.email || "", name: d.name || "Водій",
         phone: d.phone || "", requested_at: Date.now(), status: "pending"
       });
+      // EmailJS
+      try {
+        await emailjs.send("service_kwvo0he", "template_9aj65cb", {
+          name: d.name || "Водій",
+          email: d.email || "",
+          message: "Телефон: " + (d.phone || "не вказано") + "\nUID: " + uid
+        });
+      } catch(emailErr) { console.warn("EmailJS:", emailErr); }
       btn.textContent = "\u2705 Запит відправлено";
       st.style.display = "block";
       st.textContent = "Очікуйте реквізити на " + (d.email || "ваш email");
