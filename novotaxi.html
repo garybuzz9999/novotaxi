@@ -468,7 +468,7 @@
       <button class="social-btn" onclick="closeRoleModal();signInGoogle();">
         <span class="icon">🔵</span> Продовжити з Google
       </button>
-      <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
+      <button class="social-btn" onclick="closeRoleModal();signInAppleClient();">
         <span class="icon">🍎</span> Продовжити з Apple
       </button>
       <div class="geo-warn" style="margin-top:12px;">
@@ -519,6 +519,13 @@
       <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
         Продовжити з Google →
       </button>
+      <button id="driver-continue-apple-btn" onclick="proceedDriverAuthApple()" style="width:100%;background:var(--surface);border:.5px solid var(--border);color:var(--text);padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;opacity:0.4;pointer-events:none;">
+        🍎 Продовжити з Apple →
+      </button>
+      <div class="geo-warn" style="margin-top:12px;">
+        <span class="icon">📍</span>
+        <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Для відображення на карті і прийому замовлень</p></div>
+      </div>
       <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
       <div style="font-size:11px;color:var(--hint);text-align:center;margin-top:10px;">Перші 7 днів безкоштовно. Далі <span id="modal-auth-price">300</span> грн/міс.</div>
     </div>
@@ -542,6 +549,13 @@
       <button class="social-btn" onclick="closeRoleModal();signInFleetOwner();" style="background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);">
         <span class="icon">🔵</span> Увійти з Google
       </button>
+      <button class="social-btn" onclick="closeRoleModal();signInAppleFleet();" style="background:var(--surface);border-color:var(--border);">
+        <span class="icon">🍎</span> Увійти з Apple
+      </button>
+      <div class="geo-warn" style="margin-top:12px;">
+        <span class="icon">📍</span>
+        <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Для відстеження авто на карті в реальному часі</p></div>
+      </div>
       <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
     </div>
 
@@ -1507,15 +1521,38 @@ function initMap() {
     document.querySelectorAll('.driver-type-card').forEach(c => c.classList.remove('selected'));
     document.getElementById('dtype-' + type).classList.add('selected');
     const btn = document.getElementById('driver-continue-btn');
-    btn.style.opacity = '1';
-    btn.style.pointerEvents = 'auto';
+    const btnA = document.getElementById('driver-continue-apple-btn');
+    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+    btnA.style.opacity = '1'; btnA.style.pointerEvents = 'auto';
     if (type === 'fleet_driver') {
       document.getElementById('fleet-driver-code-wrap').style.display = 'block';
-      btn.textContent = 'Підключитись до авто →';
+      btn.textContent = 'Підключитись через Google →';
+      btnA.textContent = '🍎 Підключитись через Apple →';
     } else {
       document.getElementById('fleet-driver-code-wrap').style.display = 'none';
       btn.textContent = 'Продовжити з Google →';
+      btnA.textContent = '🍎 Продовжити з Apple →';
     }
+  };
+
+  window.proceedDriverAuthApple = async function() {
+    if (!_selectedDriverType) return;
+    document.getElementById('role-modal-overlay').style.display = 'none';
+    if (_selectedDriverType === 'fleet_driver') {
+      const code = document.getElementById('fleet-driver-code-input').value.trim();
+      if (!code) { showToast('Введи код від власника авто'); document.getElementById('role-modal-overlay').style.display = 'flex'; return; }
+      sessionStorage.setItem('nt_fleet_driver_code', code);
+    }
+    sessionStorage.setItem('nt_driver_type', _selectedDriverType);
+    showToast('Apple Sign In — буде доступно в App Store');
+  };
+
+  window.signInAppleClient = function() {
+    showToast('Apple Sign In — буде доступно в App Store');
+  };
+
+  window.signInAppleFleet = function() {
+    showToast('Apple Sign In — буде доступно в App Store');
   };
 
   window.proceedDriverAuth = async function() {
