@@ -452,20 +452,450 @@
 
 <!-- SCREEN: АВТОПАРК -->
 <div class="screen" id="screen-fleet">
-  <div class="auth-header">
-    <button class="back-btn" onclick="showScreen('screen-role')">‹</button>
-    <h2>NovoTaxi Fleet</h2>
+<style>
+.fl-wrap{background:#0a0a0a;min-height:100vh;color:#f5f5f0;font-family:inherit;}
+.fl-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:#0d0d0d;position:sticky;top:0;z-index:50;}
+.fl-topbar-title{font-size:1rem;font-weight:700;letter-spacing:1px;color:#f5f5f0;}
+.fl-topbar-title span{color:var(--accent);}
+.fl-nav{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);background:#0d0d0d;overflow-x:auto;}
+.fl-nav-btn{flex:1;min-width:60px;padding:10px 4px;background:none;border:none;border-bottom:2px solid transparent;color:#666;font-size:0.7rem;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;white-space:nowrap;}
+.fl-nav-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.fl-content{padding:16px;}
+.fl-page{display:none;}
+.fl-page.active{display:block;}
+.fl-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.fl-stat{background:#111;border:1px solid rgba(255,255,255,0.07);padding:12px;}
+.fl-stat-lbl{font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:4px;}
+.fl-stat-val{font-size:1.6rem;font-weight:700;color:#f5f5f0;}
+.fl-stat-val.y{color:var(--accent);}
+.fl-stat-val.g{color:#22C55E;}
+.fl-stat-val.r{color:#E24B4A;}
+.fl-stat-sub{font-size:0.68rem;color:#555;margin-top:2px;}
+.fl-car{background:#111;border:1px solid rgba(255,255,255,0.07);padding:14px;margin-bottom:10px;cursor:pointer;}
+.fl-car:active{opacity:0.8;}
+.fl-car.warn{border-color:rgba(226,75,74,0.4);}
+.fl-car-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.fl-car-title{font-size:0.9rem;font-weight:700;color:#f5f5f0;}
+.fl-car-plate{font-size:0.72rem;color:#555;margin-top:1px;}
+.fl-badge{font-size:0.62rem;font-weight:700;padding:2px 8px;text-transform:uppercase;}
+.fl-badge-ok{background:rgba(34,197,94,0.12);color:#22C55E;border:1px solid rgba(34,197,94,0.25);}
+.fl-badge-warn{background:rgba(226,75,74,0.1);color:#E24B4A;border:1px solid rgba(226,75,74,0.25);}
+.fl-badge-off{background:rgba(255,255,255,0.04);color:#555;border:1px solid rgba(255,255,255,0.08);}
+.fl-car-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;}
+.fl-cs{background:#0d0d0d;padding:6px 8px;}
+.fl-cs-val{font-size:1.1rem;font-weight:700;color:#f5f5f0;}
+.fl-cs-lbl{font-size:0.62rem;color:#555;text-transform:uppercase;}
+.fl-car-foot{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);}
+.fl-gps{font-size:0.72rem;color:#555;display:flex;align-items:center;gap:5px;}
+.fl-dot{width:6px;height:6px;border-radius:50%;}
+.fl-chip{font-size:0.68rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);padding:2px 8px;color:#555;}
+.fl-warn-row{background:rgba(226,75,74,0.07);border:1px solid rgba(226,75,74,0.2);padding:6px 10px;font-size:0.75rem;color:#f5f5f0;margin-bottom:8px;}
+.fl-alert{background:rgba(226,75,74,0.08);border:1px solid rgba(226,75,74,0.25);padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer;}
+.fl-alert-text{font-size:0.8rem;color:#f5f5f0;flex:1;}
+.fl-alert-link{font-size:0.75rem;color:var(--accent);font-weight:700;white-space:nowrap;}
+.fl-section{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.5px;color:#444;margin-bottom:10px;font-weight:700;}
+.fl-period{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.fl-pbtn{background:none;border:1px solid rgba(255,255,255,0.1);color:#555;padding:5px 12px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.fl-pbtn.active{background:var(--accent);border-color:var(--accent);color:#000;}
+.fl-date-nav{display:flex;align-items:center;justify-content:space-between;background:#111;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;margin-bottom:12px;}
+.fl-date-title{font-size:0.9rem;font-weight:700;color:#f5f5f0;text-align:center;}
+.fl-date-sub{font-size:0.65rem;color:#555;text-align:center;}
+.fl-nav-arrow{background:none;border:none;color:var(--accent);font-size:1.4rem;cursor:pointer;padding:0 8px;}
+.fl-day-bar{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;}
+.fl-day{background:#111;border:1px solid rgba(255,255,255,0.06);padding:5px 3px;text-align:center;}
+.fl-day.today{background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);}
+.fl-day-name{font-size:0.6rem;color:#444;text-transform:uppercase;}
+.fl-day-num{font-size:0.72rem;font-weight:600;color:#f5f5f0;}
+.fl-day-rev{font-size:0.6rem;color:#555;}
+.fl-rep-card{background:#111;border:1px solid rgba(255,255,255,0.07);padding:12px;margin-bottom:10px;}
+.fl-rep-title{font-size:0.75rem;font-weight:700;color:#f5f5f0;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:6px;}
+.fl-rep-row{display:flex;justify-content:space-between;font-size:0.78rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.fl-rep-row:last-child{border:none;}
+.fl-rep-val{font-weight:600;color:#f5f5f0;}
+.fl-rep-val.y{color:var(--accent);}
+.fl-rep-val.g{color:#22C55E;}
+.fl-rep-val.r{color:#E24B4A;}
+.fl-map-wrap{background:#0d1117;border:1px solid rgba(255,255,255,0.06);overflow:hidden;margin-bottom:10px;}
+.fl-map-info{background:#111;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;display:flex;gap:16px;font-size:0.78rem;flex-wrap:wrap;}
+.fl-profile-card{background:#111;border:1px solid rgba(255,255,255,0.07);padding:14px;margin-bottom:10px;}
+.fl-profile-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:10px;}
+.fl-sub-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d0d0d;margin-bottom:6px;}
+.fl-sub-name{font-size:0.85rem;font-weight:600;color:#f5f5f0;}
+.fl-sub-plate{font-size:0.68rem;color:#555;}
+.fl-sub-date{font-size:0.78rem;font-weight:600;}
+.fl-sub-days{font-size:0.65rem;}
+.fl-pay-btn{background:var(--accent);border:none;color:#000;padding:3px 10px;font-size:0.68rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.fl-pay-btn.red{background:#E24B4A;color:#fff;}
+.fl-input-row{display:flex;gap:8px;margin-top:6px;}
+.fl-input{flex:1;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:8px 12px;font-size:0.85rem;font-family:inherit;outline:none;}
+.fl-input:focus{border-color:var(--accent);}
+.fl-btn-y{width:100%;padding:12px;background:var(--accent);border:none;color:#000;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;}
+.fl-btn-red{width:100%;padding:12px;background:none;border:1px solid rgba(226,75,74,0.4);color:#E24B4A;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;}
+.fl-code-box{display:flex;align-items:center;justify-content:space-between;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);padding:8px 12px;margin-top:6px;}
+.fl-code-val{font-family:monospace;font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:2px;}
+.fl-copy-btn{background:none;border:1px solid rgba(245,200,66,0.3);color:var(--accent);padding:2px 8px;font-size:0.68rem;cursor:pointer;font-family:inherit;}
+.fl-gps-card{background:#111;border:2px solid rgba(245,200,66,0.2);padding:14px;margin-bottom:10px;}
+.fl-step{display:flex;align-items:flex-start;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.8rem;color:#555;}
+.fl-step:last-child{border:none;}
+.fl-step-n{background:rgba(245,200,66,0.12);color:var(--accent);width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0;margin-top:1px;}
+</style>
+<div class="fl-wrap">
+  <div class="fl-topbar">
+    <button onclick="showScreen('screen-role')" style="background:none;border:none;color:#666;font-size:1.4rem;cursor:pointer;padding:0 8px 0 0;">‹</button>
+    <div class="fl-topbar-title">Novo<span>Taxi</span> Fleet</div>
+    <div style="width:32px;"></div>
   </div>
-  <div style="padding:2rem 1rem;text-align:center;">
-    <div style="font-size:3rem;margin-bottom:1rem;">🚖</div>
-    <div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:8px;">Кабінет власника автопарку</div>
-    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:2rem;">Контроль авто, GPS трекінг, звіти і білінг</div>
-    <button onclick="fleetGoogleLogin()" style="width:100%;padding:0.85rem;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:0.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/></svg>
-      Увійти з Google
-    </button>
+  <div class="fl-nav">
+    <button class="fl-nav-btn active" onclick="flPage('overview',this)">Огляд</button>
+    <button class="fl-nav-btn" onclick="flPage('cars',this)">Авто</button>
+    <button class="fl-nav-btn" onclick="flPage('reports',this)">Звіти</button>
+    <button class="fl-nav-btn" onclick="flPage('map',this)">Карта</button>
+    <button class="fl-nav-btn" onclick="flPage('addcar',this)">+ Авто</button>
+    <button class="fl-nav-btn" onclick="flPage('profile',this)">Профіль</button>
+  </div>
+  <div class="fl-content">
+
+    <div class="fl-page active" id="fl-overview">
+      <div class="fl-stat-grid">
+        <div class="fl-stat"><div class="fl-stat-lbl">Авто в парку</div><div class="fl-stat-val y">4</div><div class="fl-stat-sub">3 активних</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Км сьогодні</div><div class="fl-stat-val">312</div><div class="fl-stat-sub">↑18% від вчора</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Виручка</div><div class="fl-stat-val y">2 840 ₴</div><div class="fl-stat-sub">28 поїздок</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід 40%</div><div class="fl-stat-val g">1 136 ₴</div><div class="fl-stat-sub">за сьогодні</div></div>
+      </div>
+      <div class="fl-alert" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3])">
+        <span style="color:#E24B4A;font-size:1rem;">⚠</span>
+        <span class="fl-alert-text"><strong style="color:#E24B4A;">VW Polo АА 9012 ОП</strong> — розбіжність 24 км</span>
+        <span class="fl-alert-link">Карта →</span>
+      </div>
+      <div class="fl-section">Стан авто</div>
+      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='camry';flSelectCar('camry')">
+        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#4ade80;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Toyota Camry</div><div class="fl-car-plate">АА 1234 КВ · 2021</div></div><span class="fl-badge fl-badge-ok">В поїздці</span></div>
+        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">87</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">740</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">8</div><div class="fl-cs-lbl">поїздок</div></div></div>
+        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#22C55E;"></div>GPS OK</div><div class="fl-chip">Михайло І.</div></div>
+      </div>
+      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='rio';flSelectCar('rio')">
+        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#4ade80;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Kia Rio</div><div class="fl-car-plate">АА 5678 МН · 2020</div></div><span class="fl-badge fl-badge-ok">В поїздці</span></div>
+        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">102</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">920</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">11</div><div class="fl-cs-lbl">поїздок</div></div></div>
+        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#22C55E;"></div>GPS OK</div><div class="fl-chip">Олег П.</div></div>
+      </div>
+      <div class="fl-car warn" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='polo';flSelectCar('polo')">
+        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#f87171;display:inline-block;vertical-align:middle;margin-right:6px;"></span>VW Polo</div><div class="fl-car-plate">АА 9012 ОП · 2019</div></div><span class="fl-badge fl-badge-warn">⚠ Розбіжність</span></div>
+        <div class="fl-warn-row">GPS: 98 км · Додаток: 74 км · Різниця: 24 км</div>
+        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val" style="color:#E24B4A;">98</div><div class="fl-cs-lbl">GPS км</div></div><div class="fl-cs"><div class="fl-cs-val">74</div><div class="fl-cs-lbl">Додаток</div></div><div class="fl-cs"><div class="fl-cs-val">860</div><div class="fl-cs-lbl">грн</div></div></div>
+        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#E24B4A;"></div>Розбіжність</div><div class="fl-chip">Сергій К.</div></div>
+      </div>
+      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='accent';flSelectCar('accent')">
+        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#555;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Hyundai Accent</div><div class="fl-car-plate">АА 3456 РС · 2018</div></div><span class="fl-badge fl-badge-off">Offline</span></div>
+        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">25</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">180</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">2</div><div class="fl-cs-lbl">поїздок</div></div></div>
+        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#444;"></div>GPS offline</div><div class="fl-chip">Без водія</div></div>
+      </div>
+    </div>
+
+    <div class="fl-page" id="fl-cars">
+      <div class="fl-section">Мої авто</div>
+      <div class="fl-car">
+        <div class="fl-car-head"><div><div class="fl-car-title">Toyota Camry</div><div class="fl-car-plate">АА 1234 КВ · 2021 · Білий</div></div><span class="fl-badge fl-badge-ok">Активний</span></div>
+        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Михайло І. · GPS: NVT-1234 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-1234-CAM</span></div>
+      </div>
+      <div class="fl-car">
+        <div class="fl-car-head"><div><div class="fl-car-title">Kia Rio</div><div class="fl-car-plate">АА 5678 МН · 2020 · Сірий</div></div><span class="fl-badge fl-badge-ok">Активний</span></div>
+        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Олег П. · GPS: NVT-5678 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-5678-RIO</span></div>
+      </div>
+      <div class="fl-car warn">
+        <div class="fl-car-head"><div><div class="fl-car-title">VW Polo</div><div class="fl-car-plate">АА 9012 ОП · 2019 · Сірий</div></div><span class="fl-badge fl-badge-warn">⚠ Увага</span></div>
+        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Сергій К. · GPS: NVT-9012 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-9012-POL</span></div>
+      </div>
+      <div class="fl-car">
+        <div class="fl-car-head"><div><div class="fl-car-title">Hyundai Accent</div><div class="fl-car-plate">АА 3456 РС · 2018 · Чорний</div></div><span class="fl-badge fl-badge-off">Offline</span></div>
+        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Без водія · GPS: NVT-3456 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-3456-ACC</span></div>
+      </div>
+    </div>
+
+    <div class="fl-page" id="fl-reports">
+      <div class="fl-period">
+        <button class="fl-pbtn active" onclick="flPeriod('week',this)">Тиждень</button>
+        <button class="fl-pbtn" onclick="flPeriod('month',this)">Місяць</button>
+        <button class="fl-pbtn" onclick="flPeriod('day',this)">День</button>
+      </div>
+      <div class="fl-date-nav">
+        <button class="fl-nav-arrow" onclick="flShift(-1)">‹</button>
+        <div><div class="fl-date-title" id="fl-date-title">19.05 — 25.05.2026</div><div class="fl-date-sub" id="fl-date-sub">Поточний тиждень</div></div>
+        <button class="fl-nav-arrow" onclick="flShift(1)" id="fl-next-arrow">›</button>
+      </div>
+      <div class="fl-day-bar" id="fl-day-bar"></div>
+      <div class="fl-stat-grid">
+        <div class="fl-stat"><div class="fl-stat-lbl" id="fl-rs-lbl">Тиждень км</div><div class="fl-stat-val" id="fl-rs-km">1 840</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Виручка</div><div class="fl-stat-val y" id="fl-rs-rev">16 200 ₴</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід</div><div class="fl-stat-val g" id="fl-rs-inc">6 480 ₴</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Розбіжності</div><div class="fl-stat-val r" id="fl-rs-diff">3</div></div>
+      </div>
+      <div class="fl-rep-card"><div class="fl-rep-title">Toyota Camry</div>
+        <div class="fl-rep-row"><span>Пн 19.05</span><span class="fl-rep-val">94 км · 820 ₴</span></div>
+        <div class="fl-rep-row"><span>Вт 20.05</span><span class="fl-rep-val">78 км · 690 ₴</span></div>
+        <div class="fl-rep-row"><span>Ср 21.05</span><span class="fl-rep-val">103 км · 910 ₴</span></div>
+        <div class="fl-rep-row"><span>Чт 22.05</span><span class="fl-rep-val">87 км · 740 ₴</span></div>
+        <div class="fl-rep-row"><span>Пт 23.05</span><span class="fl-rep-val">112 км · 980 ₴</span></div>
+        <div class="fl-rep-row"><span>Сб 24.05</span><span class="fl-rep-val">98 км · 860 ₴</span></div>
+        <div class="fl-rep-row"><span>Нд 25.05</span><span class="fl-rep-val" style="color:#444;">— вихідний</span></div>
+        <div class="fl-rep-row"><span style="color:var(--accent);">Разом</span><span class="fl-rep-val y">572 км · 5 000 ₴</span></div>
+        <div class="fl-rep-row"><span>Мій дохід</span><span class="fl-rep-val g">2 000 ₴</span></div>
+      </div>
+      <div class="fl-rep-card"><div class="fl-rep-title">VW Polo ⚠</div>
+        <div class="fl-rep-row"><span>Вт 20.05</span><span class="fl-rep-val r">⚠ розбіжність +18 км</span></div>
+        <div class="fl-rep-row"><span>Чт 22.05</span><span class="fl-rep-val r">⚠ розбіжність +24 км</span></div>
+        <div class="fl-rep-row"><span style="color:var(--accent);">GPS разом</span><span class="fl-rep-val y">372 км</span></div>
+        <div class="fl-rep-row"><span>Додаток</span><span class="fl-rep-val r">330 км (−42)</span></div>
+      </div>
+    </div>
+
+    <div class="fl-page" id="fl-map">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#555;">Авто</div>
+        <select id="fl-map-sel" onchange="flSelectCar(this.value)" style="flex:1;background:#111;border:1px solid rgba(245,200,66,0.25);color:#f5f5f0;padding:7px 10px;font-size:0.82rem;font-family:inherit;font-weight:600;">
+          <option value="camry">Toyota Camry · АА 1234 КВ</option>
+          <option value="rio">Kia Rio · АА 5678 МН</option>
+          <option value="polo">⚠ VW Polo · АА 9012 ОП</option>
+          <option value="accent">Hyundai Accent · АА 3456 РС</option>
+        </select>
+      </div>
+      <div style="background:#111;border:1px solid rgba(255,255,255,0.06);padding:7px 10px;margin-bottom:8px;display:flex;gap:14px;font-size:0.72rem;flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:5px;"><span style="width:16px;height:3px;background:#378ADD;display:inline-block;border-radius:2px;"></span>GPS трекер</span>
+        <span id="fl-leg-app" style="display:flex;align-items:center;gap:5px;"><span style="width:16px;height:0;border-top:2px dashed #f5c842;display:inline-block;"></span>Додаток водія</span>
+        <span id="fl-leg-warn" style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#E24B4A;border-radius:50%;display:inline-block;"></span>Розбіжність</span>
+      </div>
+      <div class="fl-map-wrap">
+        <svg id="fl-map-svg" viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+          <rect width="360" height="280" fill="#0d1117"/>
+          <line x1="0" y1="140" x2="360" y2="140" stroke="#1a2030" stroke-width="10"/>
+          <line x1="180" y1="0" x2="180" y2="280" stroke="#1a2030" stroke-width="10"/>
+          <line x1="0" y1="80" x2="360" y2="80" stroke="#151c28" stroke-width="5"/>
+          <line x1="0" y1="200" x2="360" y2="200" stroke="#151c28" stroke-width="5"/>
+          <line x1="90" y1="0" x2="90" y2="280" stroke="#151c28" stroke-width="5"/>
+          <line x1="270" y1="0" x2="270" y2="280" stroke="#151c28" stroke-width="5"/>
+          <text x="185" y="75" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">вул. Шевченка</text>
+          <text x="185" y="135" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">пр. Миру</text>
+          <text x="185" y="195" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">вул. Соборна</text>
+          <polyline id="fl-gps-track" points="40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195" fill="none" stroke="#378ADD" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline id="fl-app-track" points="40,220 80,190 120,160 160,135 200,115 220,118 235,130 238,148 232,165 220,178 205,186" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-dasharray="7,5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle id="fl-diff1" cx="240" cy="100" r="6" fill="#E24B4A"/>
+          <circle id="fl-diff2" cx="270" cy="88" r="6" fill="#E24B4A"/>
+          <circle id="fl-car-dot" cx="230" cy="195" r="8" fill="#378ADD" stroke="#fff" stroke-width="2"/>
+          <text id="fl-car-lbl" x="244" y="199" font-family="Manrope,sans-serif" font-size="9" fill="#f5f5f0" font-weight="700">Toyota Camry</text>
+          <circle cx="40" cy="220" r="5" fill="#22C55E" stroke="#fff" stroke-width="1.5"/>
+          <text x="50" y="224" font-family="Manrope,sans-serif" font-size="8" fill="#555">Старт</text>
+        </svg>
+      </div>
+      <div class="fl-map-info">
+        <span>GPS: <strong style="color:#378ADD;" id="fl-info-gps">87 км</strong></span>
+        <span id="fl-info-app-w">Додаток: <strong style="color:#f5c842;" id="fl-info-app">87 км</strong></span>
+        <span id="fl-info-diff-w" style="display:none;">Різниця: <strong style="color:#E24B4A;" id="fl-info-diff">0 км</strong></span>
+        <span>Водій: <strong style="color:#f5f5f0;" id="fl-info-drv">Михайло І.</strong></span>
+      </div>
+    </div>
+
+    <div class="fl-page" id="fl-addcar">
+      <div class="fl-gps-card">
+        <div style="font-size:0.85rem;font-weight:700;color:#f5f5f0;margin-bottom:4px;">Нове авто в парку</div>
+        <div style="font-size:0.75rem;color:#555;margin-bottom:12px;">Введи дані авто і код трекера з коробки</div>
+        <div class="fl-section">Дані авто</div>
+        <input class="fl-input" type="text" placeholder="Марка і модель" id="fl-car-model" style="width:100%;margin-bottom:6px;">
+        <input class="fl-input" type="text" placeholder="Держномер АА 0000 ХХ" id="fl-car-plate" style="width:100%;margin-bottom:6px;">
+        <select class="fl-input" id="fl-car-color" style="width:100%;margin-bottom:6px;"><option>Білий</option><option>Чорний</option><option>Сірий</option><option>Синій</option><option>Червоний</option></select>
+        <input class="fl-input" type="text" placeholder="Рік випуску" id="fl-car-year" style="width:100%;margin-bottom:12px;">
+        <div class="fl-section">GPS трекер</div>
+        <div style="font-size:0.75rem;color:#555;margin-bottom:6px;">Трекер вже налаштований — введи код з коробки</div>
+        <input class="fl-input" type="text" placeholder="NVT-XXXX-XXXX" id="fl-tracker-code" style="width:100%;text-align:center;letter-spacing:2px;font-size:0.9rem;font-weight:700;">
+        <button class="fl-btn-y" onclick="flActivate()">ДОДАТИ АВТО В ПАРК</button>
+        <div id="fl-activate-result" style="display:none;margin-top:10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);padding:12px;">
+          <div style="color:#22C55E;font-weight:700;margin-bottom:6px;">✓ Авто додано!</div>
+          <div style="font-size:0.75rem;color:#555;margin-bottom:6px;">Код для водія:</div>
+          <div class="fl-code-box"><span class="fl-code-val" id="fl-driver-code">FD-0000-NEW</span><button class="fl-copy-btn" onclick="flCopyCode()">КОПІЮВАТИ</button></div>
+          <div style="font-size:0.7rem;color:#444;margin-top:6px;">Водій вводить цей код у своєму кабінеті</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fl-page" id="fl-profile">
+      <div class="fl-profile-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,200,66,0.12);display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;color:var(--accent);flex-shrink:0;">СГ</div>
+          <div><div style="font-size:0.9rem;font-weight:700;color:#f5f5f0;">Сергій Горбуненко</div><div style="font-size:0.72rem;color:#555;">ckbbuild@gmail.com</div></div>
+        </div>
+        <div style="background:#0d0d0d;padding:8px 10px;display:flex;justify-content:space-between;">
+          <div><div style="font-size:0.8rem;font-weight:600;color:#f5f5f0;">Fleet · 4 авто</div><div style="font-size:0.68rem;color:#555;">700 ₴ × 4 авто</div></div>
+          <div style="text-align:right;"><div style="font-size:0.9rem;font-weight:700;color:var(--accent);">2 800 ₴/міс</div></div>
+        </div>
+      </div>
+      <div class="fl-profile-card">
+        <div class="fl-profile-title">Підписка по авто</div>
+        <div class="fl-sub-row"><div><div class="fl-sub-name">Toyota Camry</div><div class="fl-sub-plate">АА 1234 КВ</div></div><div style="text-align:right;"><div class="fl-sub-date" style="color:#22C55E;">до 20.06.2026</div><div class="fl-sub-days" style="color:#555;">30 днів</div></div></div>
+        <div class="fl-sub-row"><div><div class="fl-sub-name">Kia Rio</div><div class="fl-sub-plate">АА 5678 МН</div></div><div style="text-align:right;"><div class="fl-sub-date" style="color:#22C55E;">до 15.06.2026</div><div class="fl-sub-days" style="color:#555;">25 днів</div></div></div>
+        <div class="fl-sub-row" style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.2);"><div><div class="fl-sub-name">VW Polo</div><div class="fl-sub-plate">АА 9012 ОП</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="text-align:right;"><div class="fl-sub-date" style="color:var(--accent);">до 28.05.2026</div><div class="fl-sub-days" style="color:var(--accent);">⚠ 7 днів</div></div><button class="fl-pay-btn" onclick="flPayCar('VW Polo АА 9012 ОП')">Оплатити</button></div></div>
+        <div class="fl-sub-row" style="background:rgba(226,75,74,0.06);border:1px solid rgba(226,75,74,0.2);"><div><div class="fl-sub-name">Hyundai Accent</div><div class="fl-sub-plate">АА 3456 РС</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="text-align:right;"><div class="fl-sub-date" style="color:#E24B4A;">до 22.05.2026</div><div class="fl-sub-days" style="color:#E24B4A;">🔴 Прострочено</div></div><button class="fl-pay-btn red" onclick="flPayCar('Hyundai Accent АА 3456 РС')">Оплатити</button></div></div>
+      </div>
+      <div class="fl-profile-card">
+        <div class="fl-profile-title">Продовження підписки</div>
+        <div style="font-size:0.78rem;color:#555;margin-bottom:8px;">Надішли запит — адміністратор надішле реквізити на email</div>
+        <button class="fl-btn-y" onclick="flReqSub()" style="margin-top:0;">✉ ОТРИМАТИ РЕКВІЗИТИ</button>
+        <div id="fl-sub-sent" style="display:none;margin-top:8px;font-size:0.78rem;color:#22C55E;">✓ Запит надіслано — перевір пошту</div>
+        <div style="margin-top:12px;font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:6px;">Ввести код підписки</div>
+        <div class="fl-input-row">
+          <input class="fl-input" type="text" placeholder="XXXXXX" id="fl-sub-code" style="text-align:center;letter-spacing:3px;font-size:0.9rem;font-weight:700;">
+          <button style="background:var(--accent);border:none;color:#000;padding:0 14px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit;" onclick="flActivateSub()">OK</button>
+        </div>
+        <div id="fl-sub-ok" style="display:none;margin-top:8px;font-size:0.78rem;color:#22C55E;">✓ Підписку продовжено!</div>
+      </div>
+      <div class="fl-profile-card">
+        <div class="fl-profile-title">Телефон</div>
+        <div class="fl-input-row">
+          <input class="fl-input" type="text" value="+38 097 123 45 67" id="fl-phone">
+          <button style="background:none;border:1px solid rgba(245,200,66,0.3);color:var(--accent);padding:0 12px;font-size:0.72rem;cursor:pointer;font-family:inherit;" onclick="flSavePhone()">Зберегти</button>
+        </div>
+        <div id="fl-phone-ok" style="display:none;margin-top:6px;font-size:0.75rem;color:#22C55E;">✓ Збережено</div>
+      </div>
+      <button class="fl-btn-red" onclick="showScreen('screen-role')">ВИЙТИ З КАБІНЕТУ</button>
+    </div>
+
   </div>
 </div>
+</div>
+
+<script>
+const flCarData = {
+  camry:  {label:'Toyota Camry', gps:'87 км', app:'87 км', diff:false, drv:'Михайло І.', pos:[230,195], track:'40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195'},
+  rio:    {label:'Kia Rio',      gps:'102 км', app:'102 км', diff:false, drv:'Олег П.',   pos:[290,95],  track:'50,230 100,200 160,165 210,135 250,108 290,95'},
+  polo:   {label:'VW Polo',      gps:'98 км', app:'74 км',  diff:true,  drv:'Сергій К.', pos:[270,88],  track:'40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195'},
+  accent: {label:'Hyundai Accent',gps:'25 км',app:'25 км',  diff:false, drv:'—',          pos:[160,135], track:'40,220 100,185 160,135'}
+};
+let flPeriodName='week', flOffset=0;
+const flDaysUk=['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+function flPage(name,btn){
+  document.querySelectorAll('.fl-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('fl-'+name).classList.add('active');
+  document.querySelectorAll('.fl-nav-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(name==='reports') flUpdateDateBar();
+  if(name==='map') flSelectCar(document.getElementById('fl-map-sel').value);
+}
+
+function flSelectCar(id){
+  const d=flCarData[id];
+  if(!d) return;
+  document.getElementById('fl-gps-track').setAttribute('points',d.track);
+  const appPts=d.track.split(' ').slice(0,Math.ceil(d.track.split(' ').length*0.65)).join(' ');
+  document.getElementById('fl-app-track').setAttribute('points',appPts);
+  document.getElementById('fl-car-dot').setAttribute('cx',d.pos[0]);
+  document.getElementById('fl-car-dot').setAttribute('cy',d.pos[1]);
+  document.getElementById('fl-car-lbl').setAttribute('x',d.pos[0]+12);
+  document.getElementById('fl-car-lbl').setAttribute('y',d.pos[1]+4);
+  document.getElementById('fl-car-lbl').textContent=d.label;
+  document.getElementById('fl-info-gps').textContent=d.gps;
+  document.getElementById('fl-info-app').textContent=d.app;
+  document.getElementById('fl-info-drv').textContent=d.drv;
+  document.getElementById('fl-diff1').style.display=d.diff?'':'none';
+  document.getElementById('fl-diff2').style.display=d.diff?'':'none';
+  document.getElementById('fl-leg-warn').style.display=d.diff?'':'none';
+  document.getElementById('fl-info-diff-w').style.display=d.diff?'':'none';
+  if(d.diff) document.getElementById('fl-info-diff').textContent=(parseInt(d.gps)-parseInt(d.app))+' км';
+  document.getElementById('fl-car-dot').setAttribute('fill',d.diff?'#E24B4A':'#378ADD');
+}
+
+function flPeriod(p,btn){
+  document.querySelectorAll('.fl-pbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  flPeriodName=p; flOffset=0; flUpdateDateBar();
+}
+
+function flShift(d){ if(d===1&&flOffset>=0)return; flOffset+=d; flUpdateDateBar(); }
+
+function flGetWeekMon(off){
+  const now=new Date(), day=now.getDay();
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-(day===0?6:day-1)+off*7);
+  mon.setHours(0,0,0,0); return mon;
+}
+function flFmt(d){ return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'); }
+function flFmtFull(d){ return flFmt(d)+'.'+d.getFullYear(); }
+
+function flUpdateDateBar(){
+  const title=document.getElementById('fl-date-title');
+  const sub=document.getElementById('fl-date-sub');
+  const bar=document.getElementById('fl-day-bar');
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(flPeriodName==='week'){
+    const mon=flGetWeekMon(flOffset);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    title.textContent=flFmt(mon)+' — '+flFmtFull(sun);
+    sub.textContent=flOffset===0?'Поточний тиждень':Math.abs(flOffset)+' тиж. тому';
+    bar.style.gridTemplateColumns='repeat(7,1fr)';
+    const days=[];
+    for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);days.push(d);}
+    bar.innerHTML=days.map(d=>{
+      const isT=d.getTime()===today.getTime(),isF=d>today;
+      return`<div class="fl-day${isT?' today':''}"><div class="fl-day-name">${flDaysUk[d.getDay()]}</div><div class="fl-day-num" style="color:${isF?'#333':'#f5f5f0'}">${flFmt(d)}</div><div class="fl-day-rev">${isF?'—':Math.floor(Math.random()*600+200)+'₴'}</div></div>`;
+    }).join('');
+    const km={0:'1 840','-1':'1 650','-2':'1 720'},rev={0:'16 200 ₴','-1':'14 800 ₴','-2':'15 400 ₴'};
+    document.getElementById('fl-rs-lbl').textContent='Тиждень км';
+    document.getElementById('fl-rs-km').textContent=km[flOffset]||'1 500';
+    document.getElementById('fl-rs-rev').textContent=rev[flOffset]||'13 000 ₴';
+    document.getElementById('fl-rs-inc').textContent='6 480 ₴';
+    document.getElementById('fl-rs-diff').textContent='3';
+  } else if(flPeriodName==='month'){
+    const now=new Date();
+    const d=new Date(now.getFullYear(),now.getMonth()+flOffset,1);
+    const mNames=['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+    title.textContent=mNames[d.getMonth()]+' '+d.getFullYear();
+    sub.textContent=flOffset===0?'Поточний місяць':Math.abs(flOffset)+' міс. тому';
+    const dInM=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+    bar.style.gridTemplateColumns='repeat(7,1fr)';
+    bar.innerHTML=Array.from({length:dInM},(_,i)=>{
+      const dd=new Date(d.getFullYear(),d.getMonth(),i+1);
+      const isT=dd.getTime()===today.getTime(),isF=dd>today;
+      return`<div class="fl-day${isT?' today':''}"><div class="fl-day-num" style="font-size:0.68rem;color:${isF?'#333':'#f5f5f0'}">${String(i+1).padStart(2,'0')}</div><div class="fl-day-rev">${isF?'—':Math.floor(Math.random()*200+50)}</div></div>`;
+    }).join('');
+    document.getElementById('fl-rs-lbl').textContent='Місяць км';
+    document.getElementById('fl-rs-km').textContent='7 320';
+    document.getElementById('fl-rs-rev').textContent='64 800 ₴';
+    document.getElementById('fl-rs-inc').textContent='25 920 ₴';
+    document.getElementById('fl-rs-diff').textContent='11';
+  } else {
+    const d=new Date(); d.setDate(d.getDate()+flOffset); d.setHours(0,0,0,0);
+    title.textContent=flDaysUk[d.getDay()]+', '+flFmtFull(d);
+    sub.textContent=flOffset===0?'Сьогодні':flOffset===-1?'Вчора':Math.abs(flOffset)+' дн. тому';
+    bar.style.gridTemplateColumns='1fr';
+    bar.innerHTML=`<div class="fl-day" style="padding:8px 12px;display:flex;justify-content:space-between;"><span style="font-size:0.78rem;color:#555;">Всі авто · ${flFmtFull(d)}</span><span style="font-size:0.85rem;font-weight:700;color:var(--accent);">${flOffset===0?'2 840 ₴':Math.floor(Math.random()*2000+800)+' ₴'}</span></div>`;
+    document.getElementById('fl-rs-lbl').textContent='Сьогодні км';
+    document.getElementById('fl-rs-km').textContent='312';
+    document.getElementById('fl-rs-rev').textContent='2 840 ₴';
+    document.getElementById('fl-rs-inc').textContent='1 136 ₴';
+    document.getElementById('fl-rs-diff').textContent='1';
+  }
+}
+
+function flActivate(){
+  const code=document.getElementById('fl-tracker-code').value.trim();
+  if(!code){alert('Введи код трекера');return;}
+  document.getElementById('fl-driver-code').textContent='FD-'+Math.floor(1000+Math.random()*9000)+'-NEW';
+  document.getElementById('fl-activate-result').style.display='block';
+}
+function flCopyCode(){
+  navigator.clipboard.writeText(document.getElementById('fl-driver-code').textContent).catch(()=>{});
+}
+function flPayCar(car){
+  document.getElementById('fl-sub-sent').style.display='block';
+  document.getElementById('fl-sub-sent').textContent='✓ Запит по '+car+' надіслано — перевір пошту';
+}
+function flReqSub(){ document.getElementById('fl-sub-sent').style.display='block'; }
+function flActivateSub(){
+  if(!document.getElementById('fl-sub-code').value.trim()){alert('Введи код');return;}
+  document.getElementById('fl-sub-ok').style.display='block';
+}
+function flSavePhone(){
+  document.getElementById('fl-phone-ok').style.display='block';
+  setTimeout(()=>document.getElementById('fl-phone-ok').style.display='none',2000);
+}
+</script>
 
 <!-- SCREEN: КЛІЄНТ АВТОРИЗАЦІЯ -->
 <div class="screen" id="screen-client-auth">
@@ -2604,10 +3034,6 @@ function initMap() {
     std:{board:30,km:5}, est:{board:40,km:6},
     bus:{board:60,km:8}, cargo:{board:80,km:10}, courier:{board:30,km:5}
   };
-
-  function fleetGoogleLogin() {
-    showToast('Google авторизація — незабаром 🚖');
-  }
 
   function showScreen(id) {
     if (id === 'screen-main') setTimeout(initMap, 100);
