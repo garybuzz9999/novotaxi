@@ -512,10 +512,7 @@
           <div style="font-size:0.7rem;color:var(--muted);">Маю код від власника авто</div>
         </div>
       </div>
-      <div id="fleet-driver-code-wrap" style="display:none;margin-bottom:12px;">
-        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">Код від власника авто</div>
-        <input type="text" id="fleet-driver-code-input" placeholder="FD-XXXX-XXXX" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:1rem;font-weight:700;letter-spacing:2px;text-align:center;font-family:inherit;outline:none;">
-      </div>
+      <div id="fleet-driver-code-wrap" style="display:none;"></div>
       <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
         Продовжити з Google →
       </button>
@@ -2478,7 +2475,10 @@ function initMap() {
     const uid = window._currentUid;
     if (!uid) return;
     try {
-      const snap = await get(ref(db, 'drivers/' + uid));
+      // Перевіряємо чи це водій автопарку
+      const isFleetDriver = window._driverType === 'fleet_driver';
+      const dbPath = isFleetDriver ? 'fleet_drivers/' : 'drivers/';
+      const snap = await get(ref(db, dbPath + uid));
       if (!snap.exists()) return;
       const d = snap.val();
       const initials = (d.name || d.email || '?').substring(0,2).toUpperCase();
@@ -2487,18 +2487,41 @@ function initMap() {
       document.getElementById('drv-prof-email').textContent = d.email || '';
       var phoneInput = document.getElementById('drv-prof-phone-input');
       if (phoneInput) phoneInput.value = d.phone || '';
-      const svcNames = {taxi:'🚗 Таксі', courier:'📦 Кур\'єр', std:'🚗 Стандарт', est:'🚙 Універсал', bus:'🚐 Бус', cargo:'🚛 Вантажний'};
-      const services = d.services || ['taxi'];
-      document.getElementById('drv-services-row').innerHTML = services
-        .map(function(s) { return '<span style="font-size:12px;background:rgba(232,184,0,.1);border:.5px solid var(--accent2);color:var(--accent2);padding:4px 12px;border-radius:20px">' + (svcNames[s] || s) + '</span>'; })
-        .join('');
+
+      if (isFleetDriver) {
+        document.getElementById('drv-sub-block').style.display = 'none';
+        document.getElementById('drv-subscription-blocks').style.display = 'none';
+        document.getElementById('drv-fleet-info-block').style.display = 'block';
+        document.getElementById('drv-fleet-code-input-block').style.display = 'block';
+        if (d.fleet_code) {
+          document.getElementById('drv-fleet-code-display').textContent = 'Код: ' + d.fleet_code;
+          document.getElementById('drv-fleet-code-input-profile').value = d.fleet_code;
+        }
+        document.getElementById('drv-prof-badge').textContent = '🚖 Автопарк';
+        document.getElementById('drv-prof-badge').style.background = 'rgba(245,200,66,0.15)';
+        document.getElementById('drv-prof-badge').style.color = 'var(--accent)';
+        document.getElementById('drv-services-row').innerHTML = '<span style="font-size:12px;background:rgba(245,200,66,.1);border:.5px solid var(--accent);color:var(--accent);padding:4px 12px;border-radius:20px">🚖 Водій автопарку</span>';
+      } else {
+        document.getElementById('drv-sub-block').style.display = 'flex';
+        document.getElementById('drv-subscription-blocks').style.display = 'block';
+        document.getElementById('drv-fleet-info-block').style.display = 'none';
+        document.getElementById('drv-fleet-code-input-block').style.display = 'none';
+        const svcNames = {taxi:'🚗 Таксі', courier:'📦 Кур\'єр', std:'🚗 Стандарт', est:'🚙 Універсал', bus:'🚐 Бус', cargo:'🚛 Вантажний', fleet_driver:'🚖 Автопарк'};
+        const services = d.services || ['taxi'];
+        document.getElementById('drv-services-row').innerHTML = services
+          .map(function(s) { return '<span style="font-size:12px;background:rgba(232,184,0,.1);border:.5px solid var(--accent2);color:var(--accent2);padding:4px 12px;border-radius:20px">' + (svcNames[s] || s) + '</span>'; })
+          .join('');
+      }
+
       if (d.trial_until) {
         const trialDate = new Date(d.trial_until);
         const daysLeft = Math.max(0, Math.round((trialDate - Date.now()) / 86400000));
         document.getElementById('drv-sub-txt').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + ' днів' : 'Підписка активна';
         document.getElementById('drv-sub-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
-        document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
-        document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
+        if (!isFleetDriver) {
+          document.getElementById('drv-prof-badge').textContent = daysLeft > 0 ? 'Пробний · ' + daysLeft + 'д' : 'Активна';
+          document.getElementById('drv-prof-sub').textContent = 'До ' + trialDate.toLocaleDateString('uk');
+        }
       }
       // Водій завжди онлайн при вході — сам вимикає коли не працює
       _drvOnline = d.online !== false; // якщо водій сам не вимкнув — онлайн
@@ -2949,6 +2972,22 @@ function initMap() {
     document.getElementById('btn-street').style.display = 'block';
     document.getElementById('street-ride-block').style.display = 'none';
     showToast('✅ Поїздка ' + _streetKm.toFixed(1) + ' км · ' + price + ' грн');
+  };
+
+  window.drvConnectFleet = async function() {
+    const code = document.getElementById('drv-fleet-code-input-profile').value.trim().toUpperCase();
+    if (!code) { showToast('Введи код від власника'); return; }
+    const uid = window._currentUid;
+    if (!uid) return;
+    try {
+      await set(ref(db, 'fleet_drivers/' + uid + '/fleet_code'), code);
+      document.getElementById('drv-fleet-code-display').textContent = 'Код: ' + code;
+      document.getElementById('drv-fleet-connect-status').style.display = 'block';
+      document.getElementById('drv-fleet-connect-status').textContent = '✅ Код підключено!';
+      showToast('✅ Підключено до автопарку!');
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
   };
 
   window.drvSavePhone = async function() {
@@ -4482,12 +4521,17 @@ function initMap() {
       </div>
     </div>
     <div style="padding:14px 16px">
-      <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div id="drv-sub-block" style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:13px;font-weight:500;color:var(--text)" id="prof-price-display">300 грн / місяць</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px" id="drv-prof-sub">—</div>
         </div>
         <span style="font-size:12px;color:#4cd964">Активна</span>
+      </div>
+      <div id="drv-fleet-info-block" style="display:none;background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--hint);margin-bottom:4px">🚖 Автопарк</div>
+        <div style="font-size:14px;font-weight:500;color:var(--accent)" id="drv-fleet-code-display">Підключено</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Підписка оплачується власником автопарку</div>
       </div>
       <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
         <div style="font-size:12px;color:var(--hint);margin-bottom:6px">📱 Телефон</div>
@@ -4496,21 +4540,33 @@ function initMap() {
           <button onclick="drvSavePhone()" style="background:var(--black);color:var(--accent);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer">Зберегти</button>
         </div>
       </div>
-      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">💳 Продовження підписки</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити на ваш email</div>
-        <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">📩 Отримати код підписки</button>
-        <div id="drv-req-code-status" style="display:none;margin-top:8px;font-size:12px;color:#4cd964;text-align:center"></div>
-      </div>
-      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">🔑 Ввести код підписки</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Після оплати введіть код який надіслав адміністратор</div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="drv-code-input" placeholder="XXXXXX" maxlength="10"
-            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:18px;font-weight:500;color:var(--text);outline:none;letter-spacing:3px;text-transform:uppercase">
-          <button onclick="drvActivateCode()" style="background:var(--accent);color:var(--black);border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer">Активувати</button>
+      <div id="drv-fleet-code-input-block" style="display:none;background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--hint);margin-bottom:6px">🔑 Код від власника авто</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Отримай код від власника — він надішле SMS або покаже в кабінеті Fleet</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="drv-fleet-code-input-profile" placeholder="FD-XXXX-XXXX" maxlength="12"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:16px;font-weight:700;color:var(--text);outline:none;letter-spacing:2px;text-align:center;text-transform:uppercase;font-family:inherit;">
+          <button onclick="drvConnectFleet()" style="background:var(--accent);color:var(--black);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">Підключити</button>
         </div>
-        <div id="drv-code-status" style="display:none;margin-top:8px;font-size:12px;text-align:center"></div>
+        <div id="drv-fleet-connect-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;color:#4cd964;"></div>
+      </div>
+      <div id="drv-subscription-blocks">
+        <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">💳 Продовження підписки</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Надішліть запит — адміністратор надішле реквізити на ваш email</div>
+          <button onclick="drvRequestCode()" id="drv-req-code-btn" style="width:100%;background:var(--black);color:var(--accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:500;cursor:pointer">📩 Отримати код підписки</button>
+          <div id="drv-req-code-status" style="display:none;margin-top:8px;font-size:12px;color:#4cd964;text-align:center"></div>
+        </div>
+        <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">🔑 Ввести код підписки</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Після оплати введіть код який надіслав адміністратор</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="drv-code-input" placeholder="XXXXXX" maxlength="10"
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:18px;font-weight:500;color:var(--text);outline:none;letter-spacing:3px;text-transform:uppercase">
+            <button onclick="drvActivateCode()" style="background:var(--accent);color:var(--black);border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer">Активувати</button>
+          </div>
+          <div id="drv-code-status" style="display:none;margin-top:8px;font-size:12px;text-align:center"></div>
+        </div>
       </div>
       <button onclick="drvSignOut()" style="width:100%;background:transparent;border:1.5px solid #ff453a;color:#ff453a;border-radius:12px;padding:14px;font-size:15px;font-weight:500;cursor:pointer">🚪 Вийти з акаунту</button>
     </div>
