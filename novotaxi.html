@@ -1540,7 +1540,7 @@ function initMap() {
       if (!code) { showToast('Введи код від власника авто'); document.getElementById('role-modal-overlay').style.display = 'flex'; return; }
       sessionStorage.setItem('nt_fleet_driver_code', code);
     }
-    sessionStorage.setItem('nt_driver_type', _selectedDriverType);
+    localStorage.setItem('nt_driver_type', _selectedDriverType);
     showToast('Apple Sign In — буде доступно в App Store');
   };
 
@@ -1555,14 +1555,7 @@ function initMap() {
   window.proceedDriverAuth = async function() {
     if (!_selectedDriverType) return;
     document.getElementById('role-modal-overlay').style.display = 'none';
-    if (_selectedDriverType === 'fleet_driver') {
-      const code = document.getElementById('fleet-driver-code-input').value.trim();
-      if (!code) { showToast('Введи код від власника авто'); document.getElementById('role-modal-overlay').style.display = 'flex'; return; }
-      sessionStorage.setItem('nt_fleet_driver_code', code);
-      sessionStorage.setItem('nt_driver_type', 'fleet_driver');
-    } else {
-      sessionStorage.setItem('nt_driver_type', _selectedDriverType);
-    }
+    localStorage.setItem('nt_driver_type', _selectedDriverType);
     await window.signInDriverGoogle();
   };
 
@@ -1593,7 +1586,7 @@ function initMap() {
       showToast('Відкриваємо Google...');
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      const driverType = sessionStorage.getItem('nt_driver_type') || 'taxi';
+      const driverType = localStorage.getItem('nt_driver_type') || 'taxi';
       const fleetCode = sessionStorage.getItem('nt_fleet_driver_code') || null;
 
       if (driverType === 'fleet_driver') {
@@ -1610,7 +1603,7 @@ function initMap() {
         window._currentUid = user.uid;
         window._isDriver = true;
         window._driverType = 'fleet_driver';
-        sessionStorage.removeItem('nt_fleet_driver_code');
+        localStorage.removeItem('nt_driver_type');
         showToast('✅ Підключено до автопарку!');
         showScreen('screen-driver-main');
         if (window.initDriverScreen) window.initDriverScreen();
@@ -1637,6 +1630,7 @@ function initMap() {
       window._currentUid = user.uid;
       window._isDriver = true;
       window._driverType = driverType;
+      localStorage.removeItem('nt_driver_type');
       // Ініціалізуємо FCM для фонових пушів
       initFCM(user.uid);
       // Перевіряємо чи заповнив реєстрацію
