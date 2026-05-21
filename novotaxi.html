@@ -411,34 +411,38 @@
 <div class="screen" id="screen-role">
   <div class="splash-logo">
     <h1><span>Novo</span><span>Taxi</span></h1>
-    <p>Новоград · таксі, доставка, кур'єр</p>
+    <p>Звягель · таксі, доставка, кур'єр</p>
   </div>
   <div class="role-body">
     <div class="role-label">Хто ви?</div>
-    <div class="role-card" onclick="showScreen('screen-client-auth')">
+
+    <div class="role-card" onclick="openRoleModal('client')">
       <div class="role-icon client">🙋</div>
       <div>
         <div class="role-name">Я клієнт</div>
-        <div class="role-desc">Хочу замовити таксі або доставку</div>
+        <div class="role-desc">Замовити таксі або доставку</div>
       </div>
       <div class="role-arrow">›</div>
     </div>
-    <div class="role-card" onclick="showScreen('screen-driver-auth')">
+
+    <div class="role-card" onclick="openRoleModal('driver')">
       <div class="role-icon driver">🚗</div>
       <div>
         <div class="role-name">Я водій / кур'єр</div>
-        <div class="role-desc">Хочу приймати замовлення і заробляти</div>
+        <div class="role-desc">Приймати замовлення і заробляти</div>
       </div>
       <div class="role-arrow">›</div>
     </div>
-    <div class="role-card" onclick="showScreen('screen-fleet')" style="border-color:rgba(245,200,66,0.3);">
+
+    <div class="role-card" onclick="openRoleModal('fleet')" style="border-color:rgba(245,200,66,0.3);">
       <div class="role-icon" style="background:rgba(245,200,66,0.12);font-size:1.5rem;">🚖</div>
       <div>
         <div class="role-name" style="color:var(--accent);">Автопарк</div>
-        <div class="role-desc">Маю авто під таксі — контроль і звіти</div>
+        <div class="role-desc">Власник авто — контроль і звіти</div>
       </div>
       <div class="role-arrow" style="color:var(--accent);">›</div>
     </div>
+
     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
       <button onclick="showScreen('screen-help')" style="background:none;border:.5px solid var(--border);color:var(--muted);border-radius:20px;padding:7px 16px;font-size:13px;cursor:pointer">❓ Як користуватись</button>
       <button onclick="openBackoffice()" style="background:none;border:.5px solid var(--border);color:var(--hint);border-radius:20px;padding:7px 16px;font-size:13px;cursor:pointer">⚙️ Адмін</button>
@@ -449,6 +453,121 @@
     </div>
   </div>
 </div>
+
+<!-- МОДАЛКА ВИБОРУ РОЛІ -->
+<div id="role-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:flex-end;justify-content:center;" onclick="closeRoleModal(event)">
+  <div id="role-modal-box" style="background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
+
+    <!-- КЛІЄНТ -->
+    <div id="role-modal-client" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:2.5rem;">🙋</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-top:8px;">Вхід для клієнта</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Один тап — і ви в системі</div>
+      </div>
+      <button class="social-btn" onclick="closeRoleModal();signInGoogle();">
+        <span class="icon">🔵</span> Продовжити з Google
+      </button>
+      <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
+        <span class="icon">🍎</span> Продовжити з Apple
+      </button>
+      <div class="geo-warn" style="margin-top:12px;">
+        <span class="icon">📍</span>
+        <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Без геолокації не зможемо знайти найближчого водія</p></div>
+      </div>
+      <button onclick="closeRoleModal()" style="width:100%;margin-top:12px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
+    </div>
+
+    <!-- ВОДІЙ -->
+    <div id="role-modal-driver" style="display:none;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:2rem;">🚗</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-top:6px;">Я водій / кур'єр</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Оберіть тип роботи</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div class="driver-type-card" onclick="selectDriverType('taxi')" id="dtype-taxi">
+          <div style="font-size:1.5rem;">🚕</div>
+          <div style="font-size:0.82rem;font-weight:700;">Таксі</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Пасажири</div>
+        </div>
+        <div class="driver-type-card" onclick="selectDriverType('courier')" id="dtype-courier">
+          <div style="font-size:1.5rem;">🛵</div>
+          <div style="font-size:0.82rem;font-weight:700;">Кур'єр</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Доставка</div>
+        </div>
+        <div class="driver-type-card" onclick="selectDriverType('bus')" id="dtype-bus">
+          <div style="font-size:1.5rem;">🚌</div>
+          <div style="font-size:0.82rem;font-weight:700;">Бус</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Пасажири/вантаж</div>
+        </div>
+        <div class="driver-type-card" onclick="selectDriverType('truck')" id="dtype-truck">
+          <div style="font-size:1.5rem;">🚚</div>
+          <div style="font-size:0.82rem;font-weight:700;">Вантажний</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Великий вантаж</div>
+        </div>
+        <div class="driver-type-card" onclick="selectDriverType('fleet_driver')" id="dtype-fleet_driver" style="grid-column:span 2;">
+          <div style="font-size:1.5rem;">🚖</div>
+          <div style="font-size:0.82rem;font-weight:700;color:var(--accent);">Водій автопарку</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Маю код від власника авто</div>
+        </div>
+      </div>
+      <div id="fleet-driver-code-wrap" style="display:none;margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">Код від власника авто</div>
+        <input type="text" id="fleet-driver-code-input" placeholder="FD-XXXX-XXXX" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:1rem;font-weight:700;letter-spacing:2px;text-align:center;font-family:inherit;outline:none;">
+      </div>
+      <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
+        Продовжити з Google →
+      </button>
+      <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
+      <div style="font-size:11px;color:var(--hint);text-align:center;margin-top:10px;">Перші 7 днів безкоштовно. Далі <span id="modal-auth-price">300</span> грн/міс.</div>
+    </div>
+
+    <!-- АВТОПАРК -->
+    <div id="role-modal-fleet" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:2.5rem;">🚖</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-top:8px;">NovoTaxi Fleet</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Кабінет власника автопарку</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.8;">
+          ✓ GPS трекінг кожного авто<br>
+          ✓ Звіти по км і виручці<br>
+          ✓ Розбіжності GPS vs додаток<br>
+          ✓ Коди для водіїв автопарку<br>
+          ✓ Підписка 700 ₴/міс за авто
+        </div>
+      </div>
+      <button class="social-btn" onclick="closeRoleModal();signInFleetOwner();" style="background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);">
+        <span class="icon">🔵</span> Увійти з Google
+      </button>
+      <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.driver-type-card {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.driver-type-card:active { opacity: 0.7; }
+.driver-type-card.selected {
+  border-color: var(--accent);
+  background: rgba(245,200,66,0.08);
+}
+#dtype-fleet_driver.selected {
+  border-color: var(--accent);
+  background: rgba(245,200,66,0.08);
+}
+</style>
 
 <!-- SCREEN: АВТОПАРК -->
 <div class="screen" id="screen-fleet">
@@ -1304,30 +1423,50 @@ function initMap() {
     document.getElementById('loader').style.display = 'none';
     if (user) {
       window._currentUid = user.uid;
-      get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
-        if (snap.exists()) {
-          window._isDriver = true;
-          // Перевіряємо чи заповнена реєстрація
-          var drvData = snap.val() || {};
-          if (!drvData.registered) {
-            showScreen('screen-driver-reg');
-            if (window.drvRegNext) window.drvRegNext(1);
-          } else {
+      // Спочатку перевіряємо fleet_owners
+      get(ref(db, 'fleet_owners/' + user.uid)).then(function(fleetSnap) {
+        if (fleetSnap.exists()) {
+          window._isFleetOwner = true;
+          sessionStorage.setItem('nt_last_screen', 'screen-fleet');
+          showScreen('screen-fleet');
+          return;
+        }
+        // Потім fleet_drivers
+        return get(ref(db, 'fleet_drivers/' + user.uid)).then(function(fdSnap) {
+          if (fdSnap.exists()) {
+            window._isDriver = true;
+            window._driverType = 'fleet_driver';
             showScreen('screen-driver-main');
             if (window.initDriverScreen) window.initDriverScreen();
+            return;
           }
-        } else {
-          window._isDriver = false;
-          var phone = localStorage.getItem('nt_phone');
-          if (phone) {
-            showScreen('screen-main');
-            if (window.startClientNotifListener) window.startClientNotifListener();
-          }
-          else { showScreen('screen-phone'); }
-        }
+          // Потім звичайні водії
+          return get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
+            if (snap.exists()) {
+              window._isDriver = true;
+              var drvData = snap.val() || {};
+              window._driverType = drvData.driver_type || 'taxi';
+              if (!drvData.registered) {
+                showScreen('screen-driver-reg');
+                if (window.drvRegNext) window.drvRegNext(1);
+              } else {
+                showScreen('screen-driver-main');
+                if (window.initDriverScreen) window.initDriverScreen();
+              }
+            } else {
+              window._isDriver = false;
+              var phone = localStorage.getItem('nt_phone');
+              if (phone) {
+                showScreen('screen-main');
+                if (window.startClientNotifListener) window.startClientNotifListener();
+              } else {
+                showScreen('screen-phone');
+              }
+            }
+          });
+        });
       }).catch(function() { showScreen('screen-role'); });
     } else {
-      // Не авторизований — перевіряємо чи є збережений телефон клієнта
       var savedPhone = localStorage.getItem('nt_phone');
       var lastScreen = sessionStorage.getItem('nt_last_screen');
       if (savedPhone) {
@@ -1341,21 +1480,119 @@ function initMap() {
     }
   });
 
+  // ─── ROLE MODAL ───
+  let _selectedDriverType = null;
+
+  window.openRoleModal = function(role) {
+    document.getElementById('role-modal-client').style.display = 'none';
+    document.getElementById('role-modal-driver').style.display = 'none';
+    document.getElementById('role-modal-fleet').style.display = 'none';
+    document.getElementById('role-modal-' + role).style.display = 'block';
+    const overlay = document.getElementById('role-modal-overlay');
+    overlay.style.display = 'flex';
+    _selectedDriverType = null;
+    document.querySelectorAll('.driver-type-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('driver-continue-btn').style.opacity = '0.4';
+    document.getElementById('driver-continue-btn').style.pointerEvents = 'none';
+    document.getElementById('fleet-driver-code-wrap').style.display = 'none';
+  };
+
+  window.closeRoleModal = function(e) {
+    if (e && e.target !== document.getElementById('role-modal-overlay')) return;
+    document.getElementById('role-modal-overlay').style.display = 'none';
+  };
+
+  window.selectDriverType = function(type) {
+    _selectedDriverType = type;
+    document.querySelectorAll('.driver-type-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('dtype-' + type).classList.add('selected');
+    const btn = document.getElementById('driver-continue-btn');
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+    if (type === 'fleet_driver') {
+      document.getElementById('fleet-driver-code-wrap').style.display = 'block';
+      btn.textContent = 'Підключитись до авто →';
+    } else {
+      document.getElementById('fleet-driver-code-wrap').style.display = 'none';
+      btn.textContent = 'Продовжити з Google →';
+    }
+  };
+
+  window.proceedDriverAuth = async function() {
+    if (!_selectedDriverType) return;
+    document.getElementById('role-modal-overlay').style.display = 'none';
+    if (_selectedDriverType === 'fleet_driver') {
+      const code = document.getElementById('fleet-driver-code-input').value.trim();
+      if (!code) { showToast('Введи код від власника авто'); document.getElementById('role-modal-overlay').style.display = 'flex'; return; }
+      sessionStorage.setItem('nt_fleet_driver_code', code);
+      sessionStorage.setItem('nt_driver_type', 'fleet_driver');
+    } else {
+      sessionStorage.setItem('nt_driver_type', _selectedDriverType);
+    }
+    await window.signInDriverGoogle();
+  };
+
+  window.signInFleetOwner = async function() {
+    try {
+      showToast('Відкриваємо Google...');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      await set(ref(db, 'fleet_owners/' + user.uid), {
+        name: user.displayName || 'Власник',
+        email: user.email,
+        role: 'fleet_owner',
+        created_at: new Date().toISOString()
+      });
+      window._currentUid = user.uid;
+      window._isFleetOwner = true;
+      sessionStorage.setItem('nt_last_screen', 'screen-fleet');
+      showToast('✅ Вхід виконано!');
+      showScreen('screen-fleet');
+    } catch(e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
+
   // Google Sign In для ВОДІЯ
   window.signInDriverGoogle = async () => {
     try {
       showToast('Відкриваємо Google...');
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+      const driverType = sessionStorage.getItem('nt_driver_type') || 'taxi';
+      const fleetCode = sessionStorage.getItem('nt_fleet_driver_code') || null;
+
+      if (driverType === 'fleet_driver') {
+        // Водій автопарку — зберігаємо в fleet_drivers
+        await set(ref(db, 'fleet_drivers/' + user.uid), {
+          name: user.displayName || 'Водій',
+          email: user.email,
+          role: 'fleet_driver',
+          fleet_code: fleetCode,
+          active: true,
+          online: false,
+          created_at: new Date().toISOString()
+        });
+        window._currentUid = user.uid;
+        window._isDriver = true;
+        window._driverType = 'fleet_driver';
+        sessionStorage.removeItem('nt_fleet_driver_code');
+        showToast('✅ Підключено до автопарку!');
+        showScreen('screen-driver-main');
+        if (window.initDriverScreen) window.initDriverScreen();
+        return;
+      }
+
       const snap = await get(ref(db, 'drivers/' + user.uid));
       if (!snap.exists()) {
         await set(ref(db, 'drivers/' + user.uid), {
           name: user.displayName || 'Водій',
           email: user.email,
           role: 'driver',
+          driver_type: driverType,
           active: true,
           online: false,
-          services: ['taxi'],
+          services: [driverType],
           created_at: new Date().toISOString(),
           trial_until: new Date(Date.now() + 7*24*60*60*1000).toISOString()
         });
@@ -1365,6 +1602,7 @@ function initMap() {
       }
       window._currentUid = user.uid;
       window._isDriver = true;
+      window._driverType = driverType;
       // Ініціалізуємо FCM для фонових пушів
       initFCM(user.uid);
       // Перевіряємо чи заповнив реєстрацію
