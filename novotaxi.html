@@ -700,7 +700,22 @@
         <div class="fl-section">Дані авто</div>
         <input class="fl-input" type="text" placeholder="Марка і модель" id="fl-car-model" style="width:100%;margin-bottom:6px;">
         <input class="fl-input" type="text" placeholder="Держномер АА 0000 ХХ" id="fl-car-plate" style="width:100%;margin-bottom:6px;">
-        <select class="fl-input" id="fl-car-color" style="width:100%;margin-bottom:6px;"><option>Білий</option><option>Чорний</option><option>Сірий</option><option>Синій</option><option>Червоний</option></select>
+        <select class="fl-input" id="fl-car-color" style="width:100%;margin-bottom:6px;">
+          <option>Білий</option>
+          <option>Чорний</option>
+          <option>Сірий</option>
+          <option>Срібний</option>
+          <option>Синій</option>
+          <option>Темно-синій</option>
+          <option>Червоний</option>
+          <option>Бордовий</option>
+          <option>Зелений</option>
+          <option>Жовтий</option>
+          <option>Помаранчевий</option>
+          <option>Коричневий</option>
+          <option>Бежевий</option>
+          <option>Золотий</option>
+        </select>
         <input class="fl-input" type="text" placeholder="Рік випуску" id="fl-car-year" style="width:100%;margin-bottom:12px;">
         <div class="fl-section">GPS трекер</div>
         <div style="font-size:0.75rem;color:#555;margin-bottom:6px;">Трекер вже налаштований — введи код з коробки</div>
@@ -1314,9 +1329,12 @@ function initMap() {
     } else {
       // Не авторизований — перевіряємо чи є збережений телефон клієнта
       var savedPhone = localStorage.getItem('nt_phone');
+      var lastScreen = sessionStorage.getItem('nt_last_screen');
       if (savedPhone) {
         showScreen('screen-main');
         if (window.startClientNotifListener) window.startClientNotifListener();
+      } else if (lastScreen && lastScreen === 'screen-fleet') {
+        showScreen('screen-fleet');
       } else {
         showScreen('screen-role');
       }
@@ -3041,6 +3059,7 @@ function initMap() {
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
     window.scrollTo(0, 0);
+    if (id !== 'screen-role') sessionStorage.setItem('nt_last_screen', id);
   }
 
   function showToast(msg) {
