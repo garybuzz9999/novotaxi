@@ -3383,6 +3383,22 @@ function initMap() {
     if (el) el.classList.add('active');
     window.scrollTo(0, 0);
     if (id !== 'screen-role') sessionStorage.setItem('nt_last_screen', id);
+    if (id === 'screen-help') loadHelpPrices();
+  }
+
+  function loadHelpPrices() {
+    try {
+      get(ref(db, 'config/settings')).then(function(snap) {
+        if (!snap.exists()) return;
+        const s = snap.val();
+        if (s.trial_days !== undefined && document.getElementById('help-trial-days'))
+          document.getElementById('help-trial-days').textContent = s.trial_days;
+        if (s.subscription_price !== undefined && document.getElementById('help-sub-price'))
+          document.getElementById('help-sub-price').textContent = s.subscription_price;
+        if (s.fleet_price !== undefined && document.getElementById('help-fleet-price'))
+          document.getElementById('help-fleet-price').textContent = s.fleet_price;
+      });
+    } catch(e) {}
   }
 
   function showToast(msg) {
@@ -4948,10 +4964,22 @@ function initMap() {
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:20px;border:.5px solid var(--border)">
       <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:10px">🛡️ Підписка водія</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.7">
-        <div>✅ 7 днів безкоштовно після реєстрації</div>
-        <div>💳 Далі <span id="auth-price-3">300</span> грн/місяць</div>
+        <div>✅ <span id="help-trial-days">7</span> днів безкоштовно після реєстрації</div>
+        <div>💳 Далі <span id="help-sub-price">300</span> грн/місяць</div>
         <div>📞 Оплата через адміністратора</div>
         <div>⚠️ При закінченні підписки — автоматично офлайн</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:10px">🚖 GPS трекер для автопарку</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        <div>📦 GPS трекер — <strong style="color:var(--text)">$50</strong> (одноразово)</div>
+        <div>📡 SIM карта вже всередині — нічого купувати</div>
+        <div>🔌 Підключення до 12В — встановлення за 10 хв</div>
+        <div>👁️ Водій може не знати про трекер</div>
+        <div>📊 Порівняння GPS з додатком водія — розбіжності видно одразу</div>
+        <div>💳 Підписка Fleet — <span id="help-fleet-price">700</span> грн/міс за авто</div>
       </div>
     </div>
 
