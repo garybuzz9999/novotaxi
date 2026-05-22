@@ -3386,10 +3386,13 @@ function initMap() {
     if (id === 'screen-help') loadHelpPrices();
   }
 
-  function loadHelpPrices() {
+  window.loadHelpPrices = function() {
     try {
-      get(ref(db, 'config/settings')).then(function(snap) {
-        if (!snap.exists()) return;
+      var getF = window._get || get;
+      var refF = window._ref || ref;
+      var dbF = window._db || db;
+      getF(refF(dbF, 'config/settings')).then(function(snap) {
+        if (!snap || !snap.exists()) return;
         const s = snap.val();
         if (s.trial_days !== undefined && document.getElementById('help-trial-days'))
           document.getElementById('help-trial-days').textContent = s.trial_days;
@@ -3397,9 +3400,10 @@ function initMap() {
           document.getElementById('help-sub-price').textContent = s.subscription_price;
         if (s.fleet_price !== undefined && document.getElementById('help-fleet-price'))
           document.getElementById('help-fleet-price').textContent = s.fleet_price;
-      });
+      }).catch(function(){});
     } catch(e) {}
   }
+  function loadHelpPrices() { window.loadHelpPrices(); }
 
   function showToast(msg) {
     const t = document.getElementById('toast');
