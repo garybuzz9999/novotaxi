@@ -2921,7 +2921,7 @@ function initMap() {
     _streetPrevLat = null;
     _streetPrevLng = null;
 
-    var _boarding = Math.round(_rideBoardingFee || 30);
+    var _boarding = Math.round(_rideBoard || 30);
     document.getElementById('btn-street').style.display = 'none';
     document.getElementById('street-ride-block').style.display = 'block';
     document.getElementById('street-km').textContent = '0.0';
@@ -2945,9 +2945,9 @@ function initMap() {
       }
 
       // Оновлюємо ціну
-      var boarding = _rideBoardingFee || 30;
+      var boarding = _rideBoard || 30;
       var perKm = _ridePerKm || 5;
-      var perIdle = _rideIdlePerMin || 1;
+      var perIdle = (_ridePerWait || 1) || 1;
       var total = Math.round(boarding + _streetKm * perKm + Math.floor(_streetIdleSec / 60) * perIdle);
       document.getElementById('street-price').textContent = String(total);
     }, 1000);
@@ -2979,9 +2979,9 @@ function initMap() {
     if (_streetWatchId) navigator.geolocation.clearWatch(_streetWatchId);
 
     var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
-    var boarding = _rideBoardingFee || 30;
+    var boarding = _rideBoard || 30;
     var perKm = _ridePerKm || 5;
-    var perIdle = _rideIdlePerMin || 1;
+    var perIdle = (_ridePerWait || 1) || 1;
     var idleMin = Math.floor(_streetIdleSec / 60);
     var price = Math.round(boarding + _streetKm * perKm + idleMin * perIdle);
 
