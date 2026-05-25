@@ -2896,6 +2896,9 @@ function initMap() {
   var _streetPrevLat = null;
   var _streetPrevLng = null;
   var _streetKm = 0;
+  var _streetIdleSec = 0;
+  var _streetLastSpeed = 0;
+  var _streetLastTime = null;
 
   function calcStreetDist(lat1, lng1, lat2, lng2) {
     var R = 6371;
@@ -2912,21 +2915,41 @@ function initMap() {
     _streetActive = true;
     _streetStart = Date.now();
     _streetKm = 0;
+    _streetIdleSec = 0;
+    _streetLastSpeed = 0;
+    _streetLastTime = Date.now();
     _streetPrevLat = null;
     _streetPrevLng = null;
 
+    var _boarding = Math.round(_rideBoardingFee || 30);
     document.getElementById('btn-street').style.display = 'none';
     document.getElementById('street-ride-block').style.display = 'block';
     document.getElementById('street-km').textContent = '0.0';
-    document.getElementById('street-price').textContent = '0';
+    document.getElementById('street-idle').textContent = '0 хв';
+    document.getElementById('street-boarding').textContent = String(_boarding);
+    document.getElementById('street-price').textContent = String(_boarding);
 
-    // Таймер
+    // Таймер + простій
     _streetTimerInt = setInterval(function() {
       var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
       var m = Math.floor(elapsed / 60);
       var s = elapsed % 60;
       document.getElementById('street-timer').textContent =
         (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+
+      // Рахуємо простій якщо швидкість < 5 км/год
+      if (_streetLastSpeed < 5) {
+        _streetIdleSec++;
+        var idleMin = Math.floor(_streetIdleSec / 60);
+        document.getElementById('street-idle').textContent = idleMin + ' хв';
+      }
+
+      // Оновлюємо ціну
+      var boarding = _rideBoardingFee || 30;
+      var perKm = _ridePerKm || 5;
+      var perIdle = _rideIdlePerMin || 1;
+      var total = Math.round(boarding + _streetKm * perKm + Math.floor(_streetIdleSec / 60) * perIdle);
+      document.getElementById('street-price').textContent = String(total);
     }, 1000);
 
     // GPS відстеження
@@ -2934,13 +2957,12 @@ function initMap() {
       _streetWatchId = navigator.geolocation.watchPosition(function(pos) {
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
+        _streetLastSpeed = (pos.coords.speed || 0) * 3.6; // м/с → км/год
         if (_streetPrevLat !== null) {
           var d = calcStreetDist(_streetPrevLat, _streetPrevLng, lat, lng);
           if (d > 0.005) { // фільтр шуму < 5м
             _streetKm += d;
-            var perKm = _ridePerKm || 5;
             document.getElementById('street-km').textContent = _streetKm.toFixed(1);
-            document.getElementById('street-price').textContent = Math.round(_streetKm * perKm);
           }
         }
         _streetPrevLat = lat;
@@ -2957,8 +2979,11 @@ function initMap() {
     if (_streetWatchId) navigator.geolocation.clearWatch(_streetWatchId);
 
     var elapsed = Math.floor((Date.now() - _streetStart) / 1000);
+    var boarding = _rideBoardingFee || 30;
     var perKm = _ridePerKm || 5;
-    var price = Math.round(_streetKm * perKm);
+    var perIdle = _rideIdlePerMin || 1;
+    var idleMin = Math.floor(_streetIdleSec / 60);
+    var price = Math.round(boarding + _streetKm * perKm + idleMin * perIdle);
 
     // Зберігаємо в Firebase
     var uid = window._currentUid;
@@ -4513,15 +4538,26 @@ function initMap() {
           <div style="font-size:15px;font-weight:500;color:var(--text)">🚶 Вуличний пасажир</div>
           <div style="font-size:12px;color:var(--accent2)" id="street-timer">00:00</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
           <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:18px;font-weight:500;color:var(--text)" id="street-km">0.0</div>
-            <div style="font-size:11px;color:var(--hint)">км</div>
+            <div style="font-size:11px;color:var(--hint);margin-bottom:4px">Посадка</div>
+            <div style="font-size:15px;font-weight:500;color:var(--muted)" id="street-boarding">30</div>
+            <div style="font-size:10px;color:var(--hint)">грн</div>
           </div>
           <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:18px;font-weight:500;color:var(--accent)" id="street-price">0</div>
-            <div style="font-size:11px;color:var(--hint)">грн</div>
+            <div style="font-size:11px;color:var(--hint);margin-bottom:4px">Км</div>
+            <div style="font-size:15px;font-weight:500;color:var(--text)" id="street-km">0.0</div>
+            <div style="font-size:10px;color:var(--hint)">км</div>
           </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:11px;color:var(--hint);margin-bottom:4px">Простій</div>
+            <div style="font-size:15px;font-weight:500;color:var(--text)" id="street-idle">0 хв</div>
+          </div>
+        </div>
+        <div style="background:var(--black);border-radius:8px;padding:10px;text-align:center;margin-bottom:12px">
+          <div style="font-size:12px;color:var(--hint);margin-bottom:2px">Сума</div>
+          <div style="font-size:26px;font-weight:700;color:var(--accent)" id="street-price">30</div>
+          <div style="font-size:11px;color:var(--hint)">грн</div>
         </div>
         <button onclick="finishStreetRide()" style="width:100%;background:var(--accent);color:var(--black);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:500;cursor:pointer">
           ✅ Завершити поїздку
