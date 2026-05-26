@@ -715,10 +715,10 @@
       </div>
       <div class="fl-day-bar" id="fl-day-bar"></div>
       <div class="fl-stat-grid">
-        <div class="fl-stat"><div class="fl-stat-lbl" id="fl-rs-lbl">Тиждень км</div><div class="fl-stat-val" id="fl-rs-km">1 840</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Виручка</div><div class="fl-stat-val y" id="fl-rs-rev">16 200 ₴</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід</div><div class="fl-stat-val g" id="fl-rs-inc">6 480 ₴</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Розбіжності</div><div class="fl-stat-val r" id="fl-rs-diff">3</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl" id="fl-rs-lbl">Км</div><div class="fl-stat-val" id="fl-rs-km">—</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Виручка</div><div class="fl-stat-val y" id="fl-rs-rev">—</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід</div><div class="fl-stat-val g" id="fl-rs-inc">—</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Розбіжності</div><div class="fl-stat-val r" id="fl-rs-diff">—</div></div>
       </div>
       <div class="fl-rep-card" id="fl-rep-cars-list">
         <div style="text-align:center;padding:20px;color:#555;font-size:0.85rem;">⏳ Завантаження звітів...</div>
@@ -1081,12 +1081,12 @@ function flUpdateDateBar(){
       const isT=d.getTime()===today.getTime(),isF=d>today;
       return`<div class="fl-day${isT?' today':''}"><div class="fl-day-name">${flDaysUk[d.getDay()]}</div><div class="fl-day-num" style="color:${isF?'#333':'#f5f5f0'}">${flFmt(d)}</div><div class="fl-day-rev">${isF?'—':Math.floor(Math.random()*600+200)+'₴'}</div></div>`;
     }).join('');
-    const km={0:'1 840','-1':'1 650','-2':'1 720'},rev={0:'16 200 ₴','-1':'14 800 ₴','-2':'15 400 ₴'};
+    const km={0:'—','-1':'—','-2':'—'},rev={0:'—','-1':'—','-2':'—'};
     document.getElementById('fl-rs-lbl').textContent='Тиждень км';
-    document.getElementById('fl-rs-km').textContent=km[flOffset]||'1 500';
-    document.getElementById('fl-rs-rev').textContent=rev[flOffset]||'13 000 ₴';
-    document.getElementById('fl-rs-inc').textContent='6 480 ₴';
-    document.getElementById('fl-rs-diff').textContent='3';
+    document.getElementById('fl-rs-km').textContent='—';
+    document.getElementById('fl-rs-rev').textContent='—';
+    document.getElementById('fl-rs-inc').textContent='—';
+    document.getElementById('fl-rs-diff').textContent='—';
   } else if(flPeriodName==='month'){
     const now=new Date();
     const d=new Date(now.getFullYear(),now.getMonth()+flOffset,1);
@@ -1098,24 +1098,24 @@ function flUpdateDateBar(){
     bar.innerHTML=Array.from({length:dInM},(_,i)=>{
       const dd=new Date(d.getFullYear(),d.getMonth(),i+1);
       const isT=dd.getTime()===today.getTime(),isF=dd>today;
-      return`<div class="fl-day${isT?' today':''}"><div class="fl-day-num" style="font-size:0.68rem;color:${isF?'#333':'#f5f5f0'}">${String(i+1).padStart(2,'0')}</div><div class="fl-day-rev">${isF?'—':Math.floor(Math.random()*200+50)}</div></div>`;
+      return`<div class="fl-day${isT?' today':''}"><div class="fl-day-num" style="font-size:0.68rem;color:${isF?'#333':'#f5f5f0'}">${String(i+1).padStart(2,'0')}</div><div class="fl-day-rev">${isF?'—':'—'}</div></div>`;
     }).join('');
     document.getElementById('fl-rs-lbl').textContent='Місяць км';
-    document.getElementById('fl-rs-km').textContent='7 320';
-    document.getElementById('fl-rs-rev').textContent='64 800 ₴';
-    document.getElementById('fl-rs-inc').textContent='25 920 ₴';
-    document.getElementById('fl-rs-diff').textContent='11';
+    document.getElementById('fl-rs-km').textContent='—';
+    document.getElementById('fl-rs-rev').textContent='—';
+    document.getElementById('fl-rs-inc').textContent='—';
+    document.getElementById('fl-rs-diff').textContent='—';
   } else {
     const d=new Date(); d.setDate(d.getDate()+flOffset); d.setHours(0,0,0,0);
     title.textContent=flDaysUk[d.getDay()]+', '+flFmtFull(d);
     sub.textContent=flOffset===0?'Сьогодні':flOffset===-1?'Вчора':Math.abs(flOffset)+' дн. тому';
     bar.style.gridTemplateColumns='1fr';
-    bar.innerHTML=`<div class="fl-day" style="padding:8px 12px;display:flex;justify-content:space-between;"><span style="font-size:0.78rem;color:#555;">Всі авто · ${flFmtFull(d)}</span><span style="font-size:0.85rem;font-weight:700;color:var(--accent);">${flOffset===0?'2 840 ₴':Math.floor(Math.random()*2000+800)+' ₴'}</span></div>`;
+    bar.innerHTML=`<div class="fl-day" style="padding:8px 12px;display:flex;justify-content:space-between;"><span style="font-size:0.78rem;color:#555;">Всі авто · ${flFmtFull(d)}</span><span style="font-size:0.85rem;font-weight:700;color:var(--accent);">—</span></div>`;
     document.getElementById('fl-rs-lbl').textContent='Сьогодні км';
-    document.getElementById('fl-rs-km').textContent='312';
-    document.getElementById('fl-rs-rev').textContent='2 840 ₴';
-    document.getElementById('fl-rs-inc').textContent='1 136 ₴';
-    document.getElementById('fl-rs-diff').textContent='1';
+    document.getElementById('fl-rs-km').textContent='—';
+    document.getElementById('fl-rs-rev').textContent='—';
+    document.getElementById('fl-rs-inc').textContent='—';
+    document.getElementById('fl-rs-diff').textContent='—';
   }
 }
 
