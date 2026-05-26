@@ -443,6 +443,15 @@
       <div class="role-arrow" style="color:var(--accent);">›</div>
     </div>
 
+    <div class="role-card" onclick="openRoleModal('track')" style="border-color:rgba(55,138,221,0.3);">
+      <div class="role-icon" style="background:rgba(55,138,221,0.12);font-size:1.5rem;">📡</div>
+      <div>
+        <div class="role-name" style="color:#378ADD;">NovoTrack</div>
+        <div class="role-desc">GPS трекінг мого авто або обладнання</div>
+      </div>
+      <div class="role-arrow" style="color:#378ADD;">›</div>
+    </div>
+
     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
       <button onclick="showScreen('screen-help')" style="background:none;border:.5px solid var(--border);color:var(--muted);border-radius:20px;padding:7px 16px;font-size:13px;cursor:pointer">❓ Як користуватись</button>
       <button onclick="openBackoffice()" style="background:none;border:.5px solid var(--border);color:var(--hint);border-radius:20px;padding:7px 16px;font-size:13px;cursor:pointer">⚙️ Адмін</button>
@@ -553,6 +562,30 @@
         <span class="icon">📍</span>
         <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Для відстеження авто на карті в реальному часі</p></div>
       </div>
+      <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
+    </div>
+
+    <div id="role-modal-track" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:2.5rem;">📡</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#378ADD;margin-top:8px;">NovoTrack</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">GPS трекінг твого авто або обладнання</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.2);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.8;">
+          ✓ Реальне місцезнаходження 24/7<br>
+          ✓ Маршрут за день в додатку<br>
+          ✓ Трекер живе 3 год без живлення<br>
+          ✓ Авто, мото, обладнання<br>
+          ✓ Трекер 2200 грн + 250 грн/міс
+        </div>
+      </div>
+      <button class="social-btn" onclick="closeRoleModal();signInTrackClient();" style="background:rgba(55,138,221,0.1);border-color:rgba(55,138,221,0.3);color:#378ADD;">
+        <span class="icon">🔵</span> Увійти з Google
+      </button>
+      <button class="social-btn" onclick="closeRoleModal();signInTrackClientApple();" style="background:var(--surface);border-color:var(--border);">
+        <span class="icon">🍎</span> Увійти з Apple
+      </button>
       <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
     </div>
 
@@ -1198,6 +1231,48 @@ function flSavePhone(){
 }
 </script>
 
+<!-- SCREEN: NOVOTRACK -->
+<div class="screen" id="screen-track">
+  <div style="background:#0f0f0f;min-height:100vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <button onclick="showScreen('screen-role')" style="background:none;border:none;color:#666;font-size:1.4rem;cursor:pointer;">‹</button>
+      <div style="font-size:1rem;font-weight:700;color:#378ADD;">📡 NovoTrack</div>
+      <div style="width:32px;"></div>
+    </div>
+    <div style="padding:20px;flex:1;">
+
+      <!-- Мої пристрої -->
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:12px;">Мої пристрої</div>
+      <div id="track-devices-list">
+        <div style="text-align:center;padding:40px 20px;color:#555;">
+          <div style="font-size:2rem;margin-bottom:8px;">📡</div>
+          <div style="font-size:0.9rem;margin-bottom:4px;">Немає пристроїв</div>
+          <div style="font-size:0.78rem;color:#444;">Придбай трекер і додай нижче</div>
+        </div>
+      </div>
+
+      <!-- Додати пристрій -->
+      <div style="background:#141414;border:1px solid rgba(55,138,221,0.2);border-radius:12px;padding:16px;margin-top:16px;">
+        <div style="font-size:0.85rem;font-weight:700;color:#378ADD;margin-bottom:12px;">+ Додати пристрій</div>
+        <input id="track-device-name" type="text" placeholder="Назва (напр. Моя Honda)" style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:10px 12px;border-radius:8px;font-size:0.85rem;font-family:inherit;margin-bottom:8px;box-sizing:border-box;">
+        <input id="track-device-imei" type="number" placeholder="IMEI трекера (15 цифр)" style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:10px 12px;border-radius:8px;font-size:0.85rem;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
+        <button onclick="trackAddDevice()" style="width:100%;background:#378ADD;color:#fff;border:none;border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;">ДОДАТИ ПРИСТРІЙ</button>
+        <div id="track-add-result" style="display:none;margin-top:10px;font-size:0.8rem;color:#22C55E;text-align:center;"></div>
+      </div>
+
+      <!-- Інфо -->
+      <div style="margin-top:20px;background:#141414;border-radius:12px;padding:16px;">
+        <div style="font-size:0.78rem;color:#555;line-height:1.8;">
+          <div>📦 Трекер: <span style="color:#f5f5f0;">2 200 грн</span> одноразово</div>
+          <div>💳 Підписка: <span style="color:#f5f5f0;">250 грн/міс</span></div>
+          <div>📞 Замовити: <a href="mailto:novotaxionline@gmail.com" style="color:#378ADD;">novotaxionline@gmail.com</a></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- SCREEN: КЛІЄНТ АВТОРИЗАЦІЯ -->
 <div class="screen" id="screen-client-auth">
   <div class="auth-header">
@@ -1655,6 +1730,7 @@ function initMap() {
     document.getElementById('role-modal-client').style.display = 'none';
     document.getElementById('role-modal-driver').style.display = 'none';
     document.getElementById('role-modal-fleet').style.display = 'none';
+    document.getElementById('role-modal-track').style.display = 'none';
     document.getElementById('role-modal-' + role).style.display = 'block';
     const overlay = document.getElementById('role-modal-overlay');
     overlay.style.display = 'flex';
@@ -1714,6 +1790,107 @@ function initMap() {
     document.getElementById('role-modal-overlay').style.display = 'none';
     localStorage.setItem('nt_driver_type', _selectedDriverType);
     await window.signInDriverGoogle();
+  };
+
+  window.trackAddDevice = async function() {
+    const name = document.getElementById('track-device-name').value.trim();
+    const imei = document.getElementById('track-device-imei').value.trim();
+    const result = document.getElementById('track-add-result');
+    if (!name) { showToast('Введи назву пристрою'); return; }
+    if (!imei || imei.length < 10) { showToast('Введи IMEI (15 цифр)'); return; }
+    try {
+      const TRACCAR_URL = 'http://134.209.252.179:8082';
+      const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
+      const existing = await fetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
+      const devices = await existing.json();
+      const already = devices.find(d => d.uniqueId === imei);
+      if (already) { showToast('⚠ Цей IMEI вже зареєстрований'); return; }
+      const res = await fetch(TRACCAR_URL + '/api/devices', {
+        method: 'POST',
+        headers: {'Authorization': TRACCAR_AUTH, 'Content-Type': 'application/json'},
+        body: JSON.stringify({name: name, uniqueId: imei})
+      });
+      if (!res.ok) throw new Error('Traccar: ' + res.status);
+      const device = await res.json();
+      if (window._currentUid) {
+        await set(ref(db, 'track_clients/' + window._currentUid + '/devices/' + device.id), {
+          name: name, imei: imei, traccar_id: device.id, added: Date.now()
+        });
+      }
+      result.style.display = 'block';
+      result.textContent = '✅ Пристрій додано! Встанови трекер в авто.';
+      document.getElementById('track-device-name').value = '';
+      document.getElementById('track-device-imei').value = '';
+      trackLoadDevices();
+    } catch(e) { showToast('Помилка: ' + e.message); }
+  };
+
+  window.trackLoadDevices = async function() {
+    if (!window._currentUid) return;
+    try {
+      const snap = await get(ref(db, 'track_clients/' + window._currentUid + '/devices'));
+      const list = document.getElementById('track-devices-list');
+      if (!snap.exists()) return;
+      const devices = snap.val();
+      const TRACCAR_URL = 'http://134.209.252.179:8082';
+      const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
+      const posRes = await fetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
+      const positions = posRes.ok ? await posRes.json() : [];
+      list.innerHTML = Object.values(devices).map(function(d) {
+        const pos = positions.find(function(p){ return p.deviceId == d.traccar_id; });
+        const isOnline = pos && (Date.now() - new Date(pos.fixTime||pos.serverTime).getTime()) < 5*60*1000;
+        const speed = pos ? Math.round((pos.speed||0)*1.852) : 0;
+        return '<div style="background:#141414;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:10px;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+            '<div style="font-weight:700;color:#f5f5f0;">'+d.name+'</div>' +
+            '<span style="font-size:11px;padding:3px 8px;border-radius:10px;background:'+(isOnline?'rgba(34,197,94,0.12)':'rgba(255,255,255,0.04)')+';color:'+(isOnline?'#22C55E':'#555')+';">'+(isOnline?'Онлайн':'Офлайн')+'</span>' +
+          '</div>' +
+          '<div style="font-size:0.78rem;color:#555;">IMEI: '+d.imei+'</div>' +
+          (pos ? '<div style="font-size:0.78rem;color:#aaa;margin-top:4px;">📍 '+pos.latitude.toFixed(4)+', '+pos.longitude.toFixed(4)+' · '+speed+' км/год</div>' : '') +
+        '</div>';
+      }).join('');
+    } catch(e) {}
+  };
+
+  window.signInTrackClient = async function() {
+    try {
+      showToast('Відкриваємо Google...');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      await set(ref(db, 'track_clients/' + user.uid), {
+        name: user.displayName || 'Клієнт',
+        email: user.email,
+        role: 'track_client',
+        created_at: new Date().toISOString()
+      });
+      window._currentUid = user.uid;
+      window._isTrackClient = true;
+      sessionStorage.setItem('nt_last_screen', 'screen-track');
+      showToast('✅ Вхід виконано!');
+      showScreen('screen-track');
+      if (window.trackLoadDevices) window.trackLoadDevices();
+    } catch(e) { showToast('Помилка: ' + e.message); }
+  };
+
+  window.signInTrackClientApple = async function() {
+    try {
+      showToast('Відкриваємо Apple...');
+      const appleProvider = new OAuthProvider('apple.com');
+      const result = await signInWithPopup(auth, appleProvider);
+      const user = result.user;
+      await set(ref(db, 'track_clients/' + user.uid), {
+        name: user.displayName || 'Клієнт',
+        email: user.email,
+        role: 'track_client',
+        created_at: new Date().toISOString()
+      });
+      window._currentUid = user.uid;
+      window._isTrackClient = true;
+      sessionStorage.setItem('nt_last_screen', 'screen-track');
+      showToast('✅ Вхід виконано!');
+      showScreen('screen-track');
+      if (window.trackLoadDevices) window.trackLoadDevices();
+    } catch(e) { showToast('Помилка: ' + e.message); }
   };
 
   window.signInFleetOwner = async function() {
