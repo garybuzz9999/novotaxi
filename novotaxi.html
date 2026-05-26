@@ -844,9 +844,9 @@
           <option>Золотий</option>
         </select>
         <input class="fl-input" type="text" placeholder="Рік випуску" id="fl-car-year" style="width:100%;margin-bottom:12px;">
-        <div class="fl-section">Код трекера</div>
-        <div style="font-size:0.75rem;color:#555;margin-bottom:6px;">Знайди код на коробці GPS трекера</div>
-        <input class="fl-input" type="text" placeholder="NVT-XXXX-XXXX" id="fl-tracker-code" style="width:100%;text-align:center;letter-spacing:2px;font-size:0.9rem;font-weight:700;">
+        <div class="fl-section">IMEI трекера</div>
+        <div style="font-size:0.75rem;color:#555;margin-bottom:6px;">15 цифр — знайди на корпусі або коробці трекера</div>
+        <input class="fl-input" type="number" placeholder="352672109759464" id="fl-tracker-imei" style="width:100%;text-align:center;letter-spacing:2px;font-size:0.9rem;font-weight:700;" maxlength="15">
         <button class="fl-btn-y" onclick="flActivate()">ДОДАТИ АВТО В ПАРК</button>
         <div id="fl-activate-result" style="display:none;margin-top:10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);padding:12px;">
           <div style="color:#22C55E;font-weight:700;margin-bottom:6px;">✓ Авто додано!</div>
@@ -1120,11 +1120,66 @@ function flUpdateDateBar(){
   }
 }
 
-function flActivate(){
-  const code=document.getElementById('fl-tracker-code').value.trim();
-  if(!code){alert('Введи код трекера');return;}
-  document.getElementById('fl-driver-code').textContent='FD-'+Math.floor(1000+Math.random()*9000)+'-NEW';
-  document.getElementById('fl-activate-result').style.display='block';
+async function flActivate(){
+  const imei = document.getElementById('fl-tracker-imei').value.trim();
+  const plate = document.getElementById('fl-car-plate').value.trim();
+  const year = document.getElementById('fl-car-year').value.trim();
+  const color = document.getElementById('fl-car-color').value;
+
+  if(!imei || imei.length < 10){ alert('Введи IMEI трекера (15 цифр)'); return; }
+  if(!plate){ alert('Введи держномер'); return; }
+
+  const btn = document.querySelector('[onclick="flActivate()"]');
+  btn.textContent = '⏳ Реєстрація...';
+  btn.disabled = true;
+
+  try {
+    const TRACCAR_URL = 'http://134.209.252.179:8082';
+    const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
+
+    // Перевіряємо чи пристрій вже існує
+    const existing = await fetch(TRACCAR_URL + '/api/devices', {
+      headers: {'Authorization': TRACCAR_AUTH}
+    });
+    const devices = await existing.json();
+    const already = devices.find(d => d.uniqueId === imei);
+    if(already){
+      btn.textContent = 'ДОДАТИ АВТО В ПАРК';
+      btn.disabled = false;
+      alert('⚠ Трекер з цим IMEI вже зареєстрований: ' + already.name);
+      return;
+    }
+
+    // Створюємо пристрій в Traccar
+    const deviceName = plate + (year ? ' · ' + year : '') + (color ? ' · ' + color : '');
+    const res = await fetch(TRACCAR_URL + '/api/devices', {
+      method: 'POST',
+      headers: {'Authorization': TRACCAR_AUTH, 'Content-Type': 'application/json'},
+      body: JSON.stringify({name: deviceName, uniqueId: imei})
+    });
+
+    if(!res.ok){ throw new Error('Traccar: ' + res.status); }
+    const device = await res.json();
+
+    // Зберігаємо в Firebase
+    if(window.db && window._fleetOwnerId){
+      const {ref, set} = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+      await set(ref(db, 'fleet_cars/' + window._fleetOwnerId + '/' + device.id), {
+        imei: imei, plate: plate, year: year, color: color,
+        traccar_id: device.id, added: Date.now()
+      });
+    }
+
+    const driverCode = 'FD-' + Math.floor(1000+Math.random()*9000) + '-' + plate.replace(/\s/g,'').slice(-4);
+    document.getElementById('fl-driver-code').textContent = driverCode;
+    document.getElementById('fl-activate-result').style.display = 'block';
+
+  } catch(e) {
+    alert('Помилка підключення до сервера: ' + e.message);
+  }
+
+  btn.textContent = 'ДОДАТИ АВТО В ПАРК';
+  btn.disabled = false;
 }
 function flCopyCode(){
   navigator.clipboard.writeText(document.getElementById('fl-driver-code').textContent).catch(()=>{});
