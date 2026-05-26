@@ -447,7 +447,7 @@
       <div class="role-icon" style="background:rgba(55,138,221,0.12);font-size:1.5rem;">📡</div>
       <div>
         <div class="role-name" style="color:#378ADD;">NovoTrack</div>
-        <div class="role-desc">GPS трекінг мого авто або обладнання</div>
+        <div class="role-desc">Авто, мото, обладнання — завжди під контролем</div>
       </div>
       <div class="role-arrow" style="color:#378ADD;">›</div>
     </div>
@@ -569,14 +569,31 @@
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:2.5rem;">📡</div>
         <div style="font-size:1.1rem;font-weight:700;color:#378ADD;margin-top:8px;">NovoTrack</div>
-        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">GPS трекінг твого авто або обладнання</div>
+        <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">GPS трекінг для будь-якого транспорту і обладнання</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:1.3rem;">🚗</div>
+          <div style="font-size:0.75rem;color:#aaa;margin-top:4px;">Авто</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:1.3rem;">🏍️</div>
+          <div style="font-size:0.75rem;color:#aaa;margin-top:4px;">Мото</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:1.3rem;">🔧</div>
+          <div style="font-size:0.75rem;color:#aaa;margin-top:4px;">Обладнання</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:1.3rem;">📦</div>
+          <div style="font-size:0.75rem;color:#aaa;margin-top:4px;">Інше</div>
+        </div>
       </div>
       <div style="background:var(--bg);border:1px solid rgba(55,138,221,0.2);border-radius:12px;padding:14px;margin-bottom:16px;">
         <div style="font-size:0.78rem;color:var(--muted);line-height:1.8;">
           ✓ Реальне місцезнаходження 24/7<br>
           ✓ Маршрут за день в додатку<br>
           ✓ Трекер живе 3 год без живлення<br>
-          ✓ Авто, мото, обладнання<br>
           ✓ Трекер 2200 грн + 250 грн/міс
         </div>
       </div>
@@ -1254,7 +1271,7 @@ function flSavePhone(){
       <!-- Додати пристрій -->
       <div style="background:#141414;border:1px solid rgba(55,138,221,0.2);border-radius:12px;padding:16px;margin-top:16px;">
         <div style="font-size:0.85rem;font-weight:700;color:#378ADD;margin-bottom:12px;">+ Додати пристрій</div>
-        <input id="track-device-name" type="text" placeholder="Назва (напр. Моя Honda)" style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:10px 12px;border-radius:8px;font-size:0.85rem;font-family:inherit;margin-bottom:8px;box-sizing:border-box;">
+        <input id="track-device-name" type="text" placeholder="Назва (напр. Honda CBR, Камаз, Компресор)" style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:10px 12px;border-radius:8px;font-size:0.85rem;font-family:inherit;margin-bottom:8px;box-sizing:border-box;">
         <input id="track-device-imei" type="number" placeholder="IMEI трекера (15 цифр)" style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);color:#f5f5f0;padding:10px 12px;border-radius:8px;font-size:0.85rem;font-family:inherit;margin-bottom:12px;box-sizing:border-box;">
         <button onclick="trackAddDevice()" style="width:100%;background:#378ADD;color:#fff;border:none;border-radius:10px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;">ДОДАТИ ПРИСТРІЙ</button>
         <div id="track-add-result" style="display:none;margin-top:10px;font-size:0.8rem;color:#22C55E;text-align:center;"></div>
