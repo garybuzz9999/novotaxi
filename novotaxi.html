@@ -755,7 +755,7 @@
       <div style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.2);padding:14px;margin-bottom:10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div style="font-size:0.9rem;font-weight:700;color:var(--accent);">📡 GPS трекер</div>
-          <div style="font-size:1rem;font-weight:700;color:#f5f5f0;">$50</div>
+          <div id="fl-tracker-price-display" style="font-size:1rem;font-weight:700;color:#f5f5f0;">2200 грн</div>
         </div>
         <div style="font-size:0.75rem;color:#555;line-height:1.8;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><span style="color:var(--accent);">✓</span> SIM карта вже всередині</div>
@@ -3567,6 +3567,10 @@ function initMap() {
           document.getElementById('help-sub-price').textContent = s.subscription_price;
         if (s.fleet_price !== undefined && document.getElementById('help-fleet-price'))
           document.getElementById('help-fleet-price').textContent = s.fleet_price;
+        if (s.tracker_price !== undefined && document.getElementById('fl-tracker-price-display')) {
+          var cur = s.tracker_currency || 'грн';
+          document.getElementById('fl-tracker-price-display').textContent = s.tracker_price + ' ' + cur;
+        }
       }).catch(function(){});
     } catch(e) {}
   }
@@ -4081,6 +4085,8 @@ function initMap() {
       if(s.grace_days !== undefined) document.getElementById('s-grace').value = s.grace_days;
       if(s.queue_timer_seconds !== undefined) document.getElementById('s-timer').value = s.queue_timer_seconds;
       if(s.fleet_price !== undefined) document.getElementById('s-fleet-price').value = s.fleet_price;
+      if(s.tracker_price !== undefined) document.getElementById('s-tracker-price').value = s.tracker_price;
+      if(s.tracker_currency) document.getElementById('s-tracker-currency').value = s.tracker_currency;
       if(s.system_message) document.getElementById('s-message').value = s.system_message;
       if(s.registration_open === false) { document.getElementById('sw-reg').className = 'bo-sw off'; }
       if(s.courier_announcements === false) { document.getElementById('sw-courier').className = 'bo-sw off'; }
@@ -4094,7 +4100,9 @@ function initMap() {
       subscription_price: parseInt(document.getElementById('s-price').value),
       grace_days: parseInt(document.getElementById('s-grace').value),
       queue_timer_seconds: parseInt(document.getElementById('s-timer').value),
-      fleet_price: parseInt(document.getElementById('s-fleet-price').value)
+      fleet_price: parseInt(document.getElementById('s-fleet-price').value),
+      tracker_price: parseInt(document.getElementById('s-tracker-price').value),
+      tracker_currency: document.getElementById('s-tracker-currency').value
     };
     await window._set(window._ref(window._db,'config/settings'), {...(await window._get(window._ref(window._db,'config/settings'))).val(), ...settings});
     showToast('✅ Налаштування збережено!');
@@ -4998,6 +5006,19 @@ function initMap() {
           <button onclick="boStep('s-fleet-price',50)">+</button>
         </div>
         <span style="font-size:13px;color:var(--muted)">грн/міс</span>
+      </div>
+      <div class="bo-stepper-row">
+        <span class="bo-stepper-lbl">Ціна трекера</span>
+        <div class="bo-stepper">
+          <button onclick="boStep('s-tracker-price',-50)">−</button>
+          <input type="number" id="s-tracker-price" value="2200" min="0" step="50">
+          <button onclick="boStep('s-tracker-price',50)">+</button>
+        </div>
+        <select id="s-tracker-currency" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:4px 8px;font-size:13px;border-radius:6px;">
+          <option value="грн">грн</option>
+          <option value="$">$</option>
+          <option value="€">€</option>
+        </select>
       </div>
       <button class="bo-btn" onclick="boSaveSettings()">☁️ Зберегти в Firebase</button>
     </div>
