@@ -601,7 +601,8 @@
 .fl-stat-val.g{color:#22C55E;}
 .fl-stat-val.r{color:#E24B4A;}
 .fl-stat-sub{font-size:0.68rem;color:#555;margin-top:2px;}
-.fl-car{background:#111;border:1px solid rgba(255,255,255,0.07);padding:14px;margin-bottom:10px;cursor:pointer;}
+.fl-tooltip { background:#111; color:#f5f5f0; border:1px solid rgba(245,200,66,0.3); font-size:11px; font-weight:600; }
+.leaflet-container { font-family: Manrope, sans-serif; }
 .fl-car:active{opacity:0.8;}
 .fl-car.warn{border-color:rgba(226,75,74,0.4);}
 .fl-car-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -782,10 +783,7 @@
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:#555;">Авто</div>
         <select id="fl-map-sel" onchange="flSelectCar(this.value)" style="flex:1;background:#111;border:1px solid rgba(245,200,66,0.25);color:#f5f5f0;padding:7px 10px;font-size:0.82rem;font-family:inherit;font-weight:600;">
-          <option value="camry">Toyota Camry · АА 1234 КВ</option>
-          <option value="rio">Kia Rio · АА 5678 МН</option>
-          <option value="polo">⚠ VW Polo · АА 9012 ОП</option>
-          <option value="accent">Hyundai Accent · АА 3456 РС</option>
+          <option value="">⏳ Завантаження...</option>
         </select>
       </div>
       <div style="background:#111;border:1px solid rgba(255,255,255,0.06);padding:7px 10px;margin-bottom:8px;display:flex;gap:14px;font-size:0.72rem;flex-wrap:wrap;">
@@ -793,27 +791,11 @@
         <span id="fl-leg-app" style="display:flex;align-items:center;gap:5px;"><span style="width:16px;height:0;border-top:2px dashed #f5c842;display:inline-block;"></span>Додаток водія</span>
         <span id="fl-leg-warn" style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#E24B4A;border-radius:50%;display:inline-block;"></span>Розбіжність</span>
       </div>
-      <div class="fl-map-wrap">
-        <svg id="fl-map-svg" viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
-          <rect width="360" height="280" fill="#0d1117"/>
-          <line x1="0" y1="140" x2="360" y2="140" stroke="#1a2030" stroke-width="10"/>
-          <line x1="180" y1="0" x2="180" y2="280" stroke="#1a2030" stroke-width="10"/>
-          <line x1="0" y1="80" x2="360" y2="80" stroke="#151c28" stroke-width="5"/>
-          <line x1="0" y1="200" x2="360" y2="200" stroke="#151c28" stroke-width="5"/>
-          <line x1="90" y1="0" x2="90" y2="280" stroke="#151c28" stroke-width="5"/>
-          <line x1="270" y1="0" x2="270" y2="280" stroke="#151c28" stroke-width="5"/>
-          <text x="185" y="75" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">вул. Шевченка</text>
-          <text x="185" y="135" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">пр. Миру</text>
-          <text x="185" y="195" font-family="Manrope,sans-serif" font-size="8" fill="#2a3550">вул. Соборна</text>
-          <polyline id="fl-gps-track" points="40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195" fill="none" stroke="#378ADD" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline id="fl-app-track" points="40,220 80,190 120,160 160,135 200,115 220,118 235,130 238,148 232,165 220,178 205,186" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-dasharray="7,5" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle id="fl-diff1" cx="240" cy="100" r="6" fill="#E24B4A"/>
-          <circle id="fl-diff2" cx="270" cy="88" r="6" fill="#E24B4A"/>
-          <circle id="fl-car-dot" cx="230" cy="195" r="8" fill="#378ADD" stroke="#fff" stroke-width="2"/>
-          <text id="fl-car-lbl" x="244" y="199" font-family="Manrope,sans-serif" font-size="9" fill="#f5f5f0" font-weight="700">Toyota Camry</text>
-          <circle cx="40" cy="220" r="5" fill="#22C55E" stroke="#fff" stroke-width="1.5"/>
-          <text x="50" y="224" font-family="Manrope,sans-serif" font-size="8" fill="#555">Старт</text>
-        </svg>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+      <div class="fl-map-wrap" style="height:300px;position:relative;">
+        <div id="fl-map-leaf" style="width:100%;height:300px;"></div>
+        <div id="fl-map-status" style="position:absolute;top:8px;right:8px;z-index:1000;background:rgba(0,0,0,0.7);color:#f5f5f0;font-size:11px;padding:4px 8px;border-radius:6px;display:none;"></div>
       </div>
       <div class="fl-map-info">
         <span>GPS: <strong style="color:#378ADD;" id="fl-info-gps">87 км</strong></span>
@@ -921,12 +903,55 @@
 </div>
 
 <script>
-const flCarData = {
-  camry:  {label:'Toyota Camry', gps:'87 км', app:'87 км', diff:false, drv:'Михайло І.', pos:[230,195], track:'40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195'},
-  rio:    {label:'Kia Rio',      gps:'102 км', app:'102 км', diff:false, drv:'Олег П.',   pos:[290,95],  track:'50,230 100,200 160,165 210,135 250,108 290,95'},
-  polo:   {label:'VW Polo',      gps:'98 км', app:'74 км',  diff:true,  drv:'Сергій К.', pos:[270,88],  track:'40,220 80,190 120,160 160,135 200,115 240,100 270,88 290,95 305,115 300,145 285,168 265,185 230,195'},
-  accent: {label:'Hyundai Accent',gps:'25 км',app:'25 км',  diff:false, drv:'—',          pos:[160,135], track:'40,220 100,185 160,135'}
-};
+// ===== TRACCAR CONFIG =====
+const TRACCAR_URL = 'http://134.209.252.179:8082';
+const TRACCAR_USER = 'admin';
+const TRACCAR_PASS = 'admin';
+const TRACCAR_AUTH = 'Basic ' + btoa(TRACCAR_USER + ':' + TRACCAR_PASS);
+
+// Leaflet map instance
+var _flMap = null;
+var _flCarMarker = null;
+var _flGpsPolyline = null;
+var _flRefreshInt = null;
+
+function flInitMap() {
+  if (_flMap) return;
+  _flMap = L.map('fl-map-leaf', {zoomControl:true, attributionControl:false}).setView([50.588, 27.625], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(_flMap);
+}
+
+async function flLoadTraccarDevices() {
+  try {
+    const r = await fetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
+    if (!r.ok) return [];
+    return await r.json();
+  } catch(e) { return []; }
+}
+
+async function flLoadTraccarPositions() {
+  try {
+    const r = await fetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
+    if (!r.ok) return [];
+    return await r.json();
+  } catch(e) { return []; }
+}
+
+async function flLoadTraccarRoute(deviceId) {
+  try {
+    const now = new Date();
+    const from = new Date(now); from.setHours(0,0,0,0);
+    const r = await fetch(
+      TRACCAR_URL + '/api/reports/route?deviceId=' + deviceId +
+      '&from=' + from.toISOString() + '&to=' + now.toISOString(),
+      {headers:{'Authorization':TRACCAR_AUTH}}
+    );
+    if (!r.ok) return [];
+    return await r.json();
+  } catch(e) { return []; }
+}
+
+const flCarData = {}; // залишаємо порожнім, дані беремо з Traccar
 let flPeriodName='week', flOffset=0;
 const flDaysUk=['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
 
@@ -936,29 +961,91 @@ function flPage(name,btn){
   document.querySelectorAll('.fl-nav-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   if(name==='reports') flUpdateDateBar();
-  if(name==='map') flSelectCar(document.getElementById('fl-map-sel').value);
+  if(name==='map') { flFillDeviceSelect(); }
 }
 
-function flSelectCar(id){
-  const d=flCarData[id];
-  if(!d) return;
-  document.getElementById('fl-gps-track').setAttribute('points',d.track);
-  const appPts=d.track.split(' ').slice(0,Math.ceil(d.track.split(' ').length*0.65)).join(' ');
-  document.getElementById('fl-app-track').setAttribute('points',appPts);
-  document.getElementById('fl-car-dot').setAttribute('cx',d.pos[0]);
-  document.getElementById('fl-car-dot').setAttribute('cy',d.pos[1]);
-  document.getElementById('fl-car-lbl').setAttribute('x',d.pos[0]+12);
-  document.getElementById('fl-car-lbl').setAttribute('y',d.pos[1]+4);
-  document.getElementById('fl-car-lbl').textContent=d.label;
-  document.getElementById('fl-info-gps').textContent=d.gps;
-  document.getElementById('fl-info-app').textContent=d.app;
-  document.getElementById('fl-info-drv').textContent=d.drv;
-  document.getElementById('fl-diff1').style.display=d.diff?'':'none';
-  document.getElementById('fl-diff2').style.display=d.diff?'':'none';
-  document.getElementById('fl-leg-warn').style.display=d.diff?'':'none';
-  document.getElementById('fl-info-diff-w').style.display=d.diff?'':'none';
-  if(d.diff) document.getElementById('fl-info-diff').textContent=(parseInt(d.gps)-parseInt(d.app))+' км';
-  document.getElementById('fl-car-dot').setAttribute('fill',d.diff?'#E24B4A':'#378ADD');
+async function flFillDeviceSelect() {
+  flInitMap();
+  var sel = document.getElementById('fl-map-sel');
+  var devices = await flLoadTraccarDevices();
+  if (!devices.length) {
+    sel.innerHTML = '<option value="">⚠ Немає пристроїв</option>';
+    return;
+  }
+  sel.innerHTML = devices.map(function(d){
+    return '<option value="'+d.id+'">'+d.name+'</option>';
+  }).join('');
+  flSelectCar(devices[0].id);
+}
+
+async function flSelectCar(id){
+  flInitMap();
+  var statusEl = document.getElementById('fl-map-status');
+
+  // id може бути deviceId з Traccar або старий ключ
+  // Завантажуємо пристрої та позиції
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ Завантаження...';
+
+  var devices = await flLoadTraccarDevices();
+  var positions = await flLoadTraccarPositions();
+
+  if (!devices.length) {
+    statusEl.textContent = '⚠ Немає зв\'язку з сервером';
+    return;
+  }
+
+  // Знаходимо пристрій — якщо id числовий то по id, інакше перший
+  var dev = devices.find(function(d){ return String(d.id) === String(id); }) || devices[0];
+  if (!dev) { statusEl.style.display='none'; return; }
+
+  var pos = positions.find(function(p){ return p.deviceId === dev.id; });
+
+  // Оновлюємо інфо
+  document.getElementById('fl-info-gps').textContent = pos ? (pos.attributes && pos.attributes.totalDistance ? (pos.attributes.totalDistance/1000).toFixed(1)+' км' : 'онлайн') : 'офлайн';
+  document.getElementById('fl-info-drv').textContent = dev.name || dev.uniqueId;
+  if(document.getElementById('fl-info-app-w')) document.getElementById('fl-info-app-w').style.display='none';
+  if(document.getElementById('fl-info-diff-w')) document.getElementById('fl-info-diff-w').style.display='none';
+
+  // Центруємо карту на позиції
+  if (pos) {
+    var latlng = [pos.latitude, pos.longitude];
+    _flMap.setView(latlng, 15);
+
+    // Маркер машини
+    if (_flCarMarker) _flCarMarker.remove();
+    _flCarMarker = L.circleMarker(latlng, {radius:10, color:'#fff', weight:2, fillColor:'#378ADD', fillOpacity:1})
+      .bindTooltip(dev.name || dev.uniqueId, {permanent:true, direction:'right', className:'fl-tooltip'})
+      .addTo(_flMap);
+
+    statusEl.textContent = '🟢 ' + dev.name;
+    setTimeout(function(){ statusEl.style.display='none'; }, 2000);
+  }
+
+  // Маршрут за сьогодні
+  if (_flGpsPolyline) { _flGpsPolyline.remove(); _flGpsPolyline = null; }
+  var route = await flLoadTraccarRoute(dev.id);
+  if (route && route.length > 1) {
+    var pts = route.map(function(p){ return [p.latitude, p.longitude]; });
+    _flGpsPolyline = L.polyline(pts, {color:'#378ADD', weight:3, opacity:0.8}).addTo(_flMap);
+    _flMap.fitBounds(_flGpsPolyline.getBounds(), {padding:[20,20]});
+
+    // Показуємо км за сьогодні
+    var km = (route[route.length-1].attributes && route[route.length-1].attributes.totalDistance)
+      ? ((route[route.length-1].attributes.totalDistance - route[0].attributes.totalDistance)/1000).toFixed(1)
+      : (pts.length-1) + ' точок';
+    document.getElementById('fl-info-gps').textContent = km + ' км';
+  }
+
+  // Оновлення кожні 10 сек
+  if (_flRefreshInt) clearInterval(_flRefreshInt);
+  _flRefreshInt = setInterval(async function(){
+    var newPos = await flLoadTraccarPositions();
+    var np = newPos.find(function(p){ return p.deviceId === dev.id; });
+    if (np && _flCarMarker) {
+      _flCarMarker.setLatLng([np.latitude, np.longitude]);
+    }
+  }, 10000);
 }
 
 function flPeriod(p,btn){
