@@ -720,22 +720,8 @@
         <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід</div><div class="fl-stat-val g" id="fl-rs-inc">6 480 ₴</div></div>
         <div class="fl-stat"><div class="fl-stat-lbl">Розбіжності</div><div class="fl-stat-val r" id="fl-rs-diff">3</div></div>
       </div>
-      <div class="fl-rep-card"><div class="fl-rep-title">Toyota Camry</div>
-        <div class="fl-rep-row"><span>Пн 19.05</span><span class="fl-rep-val">94 км · 820 ₴</span></div>
-        <div class="fl-rep-row"><span>Вт 20.05</span><span class="fl-rep-val">78 км · 690 ₴</span></div>
-        <div class="fl-rep-row"><span>Ср 21.05</span><span class="fl-rep-val">103 км · 910 ₴</span></div>
-        <div class="fl-rep-row"><span>Чт 22.05</span><span class="fl-rep-val">87 км · 740 ₴</span></div>
-        <div class="fl-rep-row"><span>Пт 23.05</span><span class="fl-rep-val">112 км · 980 ₴</span></div>
-        <div class="fl-rep-row"><span>Сб 24.05</span><span class="fl-rep-val">98 км · 860 ₴</span></div>
-        <div class="fl-rep-row"><span>Нд 25.05</span><span class="fl-rep-val" style="color:#444;">— вихідний</span></div>
-        <div class="fl-rep-row"><span style="color:var(--accent);">Разом</span><span class="fl-rep-val y">572 км · 5 000 ₴</span></div>
-        <div class="fl-rep-row"><span>Мій дохід</span><span class="fl-rep-val g">2 000 ₴</span></div>
-      </div>
-      <div class="fl-rep-card"><div class="fl-rep-title">VW Polo ⚠</div>
-        <div class="fl-rep-row"><span>Вт 20.05</span><span class="fl-rep-val r">⚠ розбіжність +18 км</span></div>
-        <div class="fl-rep-row"><span>Чт 22.05</span><span class="fl-rep-val r">⚠ розбіжність +24 км</span></div>
-        <div class="fl-rep-row"><span style="color:var(--accent);">GPS разом</span><span class="fl-rep-val y">372 км</span></div>
-        <div class="fl-rep-row"><span>Додаток</span><span class="fl-rep-val r">330 км (−42)</span></div>
+      <div class="fl-rep-card" id="fl-rep-cars-list">
+        <div style="text-align:center;padding:20px;color:#555;font-size:0.85rem;">⏳ Завантаження звітів...</div>
       </div>
     </div>
 
@@ -830,10 +816,7 @@
       </div>
       <div class="fl-profile-card">
         <div class="fl-profile-title">Підписка по авто</div>
-        <div class="fl-sub-row"><div><div class="fl-sub-name">Toyota Camry</div><div class="fl-sub-plate">АА 1234 КВ</div></div><div style="text-align:right;"><div class="fl-sub-date" style="color:#22C55E;">до 20.06.2026</div><div class="fl-sub-days" style="color:#555;">30 днів</div></div></div>
-        <div class="fl-sub-row"><div><div class="fl-sub-name">Kia Rio</div><div class="fl-sub-plate">АА 5678 МН</div></div><div style="text-align:right;"><div class="fl-sub-date" style="color:#22C55E;">до 15.06.2026</div><div class="fl-sub-days" style="color:#555;">25 днів</div></div></div>
-        <div class="fl-sub-row" style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.2);"><div><div class="fl-sub-name">VW Polo</div><div class="fl-sub-plate">АА 9012 ОП</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="text-align:right;"><div class="fl-sub-date" style="color:var(--accent);">до 28.05.2026</div><div class="fl-sub-days" style="color:var(--accent);">⚠ 7 днів</div></div><button class="fl-pay-btn" onclick="flPayCar('VW Polo АА 9012 ОП')">Оплатити</button></div></div>
-        <div class="fl-sub-row" style="background:rgba(226,75,74,0.06);border:1px solid rgba(226,75,74,0.2);"><div><div class="fl-sub-name">Hyundai Accent</div><div class="fl-sub-plate">АА 3456 РС</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="text-align:right;"><div class="fl-sub-date" style="color:#E24B4A;">до 22.05.2026</div><div class="fl-sub-days" style="color:#E24B4A;">🔴 Прострочено</div></div><button class="fl-pay-btn red" onclick="flPayCar('Hyundai Accent АА 3456 РС')">Оплатити</button></div></div>
+        <div id="fl-sub-list"><div style="text-align:center;padding:16px;color:#555;font-size:0.85rem;">Немає авто</div></div>
       </div>
       <div class="fl-profile-card">
         <div class="fl-profile-title">Продовження підписки</div>
