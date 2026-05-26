@@ -688,58 +688,18 @@
 
     <div class="fl-page active" id="fl-overview">
       <div class="fl-stat-grid">
-        <div class="fl-stat"><div class="fl-stat-lbl">Авто в парку</div><div class="fl-stat-val y">4</div><div class="fl-stat-sub">3 активних</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Км сьогодні</div><div class="fl-stat-val">312</div><div class="fl-stat-sub">↑18% від вчора</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Виручка</div><div class="fl-stat-val y">2 840 ₴</div><div class="fl-stat-sub">28 поїздок</div></div>
-        <div class="fl-stat"><div class="fl-stat-lbl">Мій дохід 40%</div><div class="fl-stat-val g">1 136 ₴</div><div class="fl-stat-sub">за сьогодні</div></div>
-      </div>
-      <div class="fl-alert" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3])">
-        <span style="color:#E24B4A;font-size:1rem;">⚠</span>
-        <span class="fl-alert-text"><strong style="color:#E24B4A;">VW Polo АА 9012 ОП</strong> — розбіжність 24 км</span>
-        <span class="fl-alert-link">Карта →</span>
+        <div class="fl-stat"><div class="fl-stat-lbl">Авто в парку</div><div class="fl-stat-val y" id="fl-stat-total">0</div><div class="fl-stat-sub" id="fl-stat-active">0 активних</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Км сьогодні</div><div class="fl-stat-val" id="fl-stat-km">—</div><div class="fl-stat-sub">GPS трекер</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Онлайн</div><div class="fl-stat-val g" id="fl-stat-online">0</div><div class="fl-stat-sub">зараз</div></div>
+        <div class="fl-stat"><div class="fl-stat-lbl">Офлайн</div><div class="fl-stat-val" id="fl-stat-offline">0</div><div class="fl-stat-sub">немає сигналу</div></div>
       </div>
       <div class="fl-section">Стан авто</div>
-      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='camry';flSelectCar('camry')">
-        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#4ade80;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Toyota Camry</div><div class="fl-car-plate">АА 1234 КВ · 2021</div></div><span class="fl-badge fl-badge-ok">В поїздці</span></div>
-        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">87</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">740</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">8</div><div class="fl-cs-lbl">поїздок</div></div></div>
-        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#22C55E;"></div>GPS OK</div><div class="fl-chip">Михайло І.</div></div>
-      </div>
-      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='rio';flSelectCar('rio')">
-        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#4ade80;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Kia Rio</div><div class="fl-car-plate">АА 5678 МН · 2020</div></div><span class="fl-badge fl-badge-ok">В поїздці</span></div>
-        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">102</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">920</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">11</div><div class="fl-cs-lbl">поїздок</div></div></div>
-        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#22C55E;"></div>GPS OK</div><div class="fl-chip">Олег П.</div></div>
-      </div>
-      <div class="fl-car warn" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='polo';flSelectCar('polo')">
-        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#f87171;display:inline-block;vertical-align:middle;margin-right:6px;"></span>VW Polo</div><div class="fl-car-plate">АА 9012 ОП · 2019</div></div><span class="fl-badge fl-badge-warn">⚠ Розбіжність</span></div>
-        <div class="fl-warn-row">GPS: 98 км · Додаток: 74 км · Різниця: 24 км</div>
-        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val" style="color:#E24B4A;">98</div><div class="fl-cs-lbl">GPS км</div></div><div class="fl-cs"><div class="fl-cs-val">74</div><div class="fl-cs-lbl">Додаток</div></div><div class="fl-cs"><div class="fl-cs-val">860</div><div class="fl-cs-lbl">грн</div></div></div>
-        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#E24B4A;"></div>Розбіжність</div><div class="fl-chip">Сергій К.</div></div>
-      </div>
-      <div class="fl-car" onclick="flPage('map',document.querySelectorAll('.fl-nav-btn')[3]);document.getElementById('fl-map-sel').value='accent';flSelectCar('accent')">
-        <div class="fl-car-head"><div><div class="fl-car-title"><span class="fl-dot" style="background:#555;display:inline-block;vertical-align:middle;margin-right:6px;"></span>Hyundai Accent</div><div class="fl-car-plate">АА 3456 РС · 2018</div></div><span class="fl-badge fl-badge-off">Offline</span></div>
-        <div class="fl-car-stats"><div class="fl-cs"><div class="fl-cs-val">25</div><div class="fl-cs-lbl">км</div></div><div class="fl-cs"><div class="fl-cs-val">180</div><div class="fl-cs-lbl">грн</div></div><div class="fl-cs"><div class="fl-cs-val">2</div><div class="fl-cs-lbl">поїздок</div></div></div>
-        <div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:#444;"></div>GPS offline</div><div class="fl-chip">Без водія</div></div>
-      </div>
+      <div id="fl-overview-cars"><div style="text-align:center;padding:30px;color:#555;font-size:0.85rem;">⏳ Завантаження...</div></div>
     </div>
 
     <div class="fl-page" id="fl-cars">
       <div class="fl-section">Мої авто</div>
-      <div class="fl-car">
-        <div class="fl-car-head"><div><div class="fl-car-title">Toyota Camry</div><div class="fl-car-plate">АА 1234 КВ · 2021 · Білий</div></div><span class="fl-badge fl-badge-ok">Активний</span></div>
-        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Михайло І. · GPS: NVT-1234 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-1234-CAM</span></div>
-      </div>
-      <div class="fl-car">
-        <div class="fl-car-head"><div><div class="fl-car-title">Kia Rio</div><div class="fl-car-plate">АА 5678 МН · 2020 · Сірий</div></div><span class="fl-badge fl-badge-ok">Активний</span></div>
-        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Олег П. · GPS: NVT-5678 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-5678-RIO</span></div>
-      </div>
-      <div class="fl-car warn">
-        <div class="fl-car-head"><div><div class="fl-car-title">VW Polo</div><div class="fl-car-plate">АА 9012 ОП · 2019 · Сірий</div></div><span class="fl-badge fl-badge-warn">⚠ Увага</span></div>
-        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Водій: Сергій К. · GPS: NVT-9012 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-9012-POL</span></div>
-      </div>
-      <div class="fl-car">
-        <div class="fl-car-head"><div><div class="fl-car-title">Hyundai Accent</div><div class="fl-car-plate">АА 3456 РС · 2018 · Чорний</div></div><span class="fl-badge fl-badge-off">Offline</span></div>
-        <div style="font-size:0.75rem;color:#555;padding:4px 0;">Без водія · GPS: NVT-3456 · Код водія: <span style="color:var(--accent);font-family:monospace;">FD-3456-ACC</span></div>
-      </div>
+      <div id="fl-cars-list"><div style="text-align:center;padding:30px;color:#555;font-size:0.85rem;">⏳ Завантаження...</div></div>
     </div>
 
     <div class="fl-page" id="fl-reports">
@@ -962,6 +922,7 @@ function flPage(name,btn){
   if(btn) btn.classList.add('active');
   if(name==='reports') flUpdateDateBar();
   if(name==='map') { flFillDeviceSelect(); }
+  if(name==='overview' || name==='cars') { flRefreshOverview(); }
 }
 
 async function flFillDeviceSelect() {
@@ -1046,6 +1007,61 @@ async function flSelectCar(id){
       _flCarMarker.setLatLng([np.latitude, np.longitude]);
     }
   }, 10000);
+}
+
+function flGoMap(deviceId){
+  flPage('map', document.querySelectorAll('.fl-nav-btn')[3]);
+  document.getElementById('fl-map-sel').value = String(deviceId);
+  flSelectCar(deviceId);
+}
+
+async function flRefreshOverview(){
+  const devices = await flLoadTraccarDevices();
+  const positions = await flLoadTraccarPositions();
+  const now = Date.now();
+  let online = 0, offline = 0;
+
+  const html = devices.map(function(d){
+    const pos = positions.find(function(p){ return p.deviceId === d.id; });
+    const lastUpdate = pos ? new Date(pos.fixTime||pos.serverTime).getTime() : 0;
+    const isOnline = (now - lastUpdate) < 5*60*1000;
+    if(isOnline) online++; else offline++;
+    const speed = pos ? Math.round((pos.speed||0)*1.852) : 0;
+    const dotColor = isOnline ? '#4ade80' : '#555';
+    const badge = isOnline ? '<span class="fl-badge fl-badge-ok">Онлайн</span>' : '<span class="fl-badge fl-badge-off">Офлайн</span>';
+    return '<div class="fl-car" onclick="flGoMap('+d.id+')">' +
+      '<div class="fl-car-head"><div>' +
+        '<div class="fl-car-title"><span class="fl-dot" style="background:'+dotColor+';display:inline-block;vertical-align:middle;margin-right:6px;"></span>'+d.name+'</div>' +
+        '<div class="fl-car-plate">IMEI: '+d.uniqueId+'</div>' +
+      '</div>'+badge+'</div>' +
+      '<div class="fl-car-stats">' +
+        '<div class="fl-cs"><div class="fl-cs-val">'+(isOnline?speed:'-')+'</div><div class="fl-cs-lbl">км/год</div></div>' +
+        '<div class="fl-cs"><div class="fl-cs-val">'+(pos?pos.latitude.toFixed(3):'-')+'</div><div class="fl-cs-lbl">lat</div></div>' +
+        '<div class="fl-cs"><div class="fl-cs-val">'+(pos?pos.longitude.toFixed(3):'-')+'</div><div class="fl-cs-lbl">lon</div></div>' +
+      '</div>' +
+      '<div class="fl-car-foot"><div class="fl-gps"><div class="fl-dot" style="background:'+(isOnline?'#22C55E':'#444')+';"></div>'+(isOnline?'GPS OK':'GPS офлайн')+'</div></div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('fl-stat-total').textContent = devices.length;
+  document.getElementById('fl-stat-active').textContent = online + ' активних';
+  document.getElementById('fl-stat-online').textContent = online;
+  document.getElementById('fl-stat-offline').textContent = offline;
+  document.getElementById('fl-overview-cars').innerHTML = devices.length
+    ? html
+    : '<div style="text-align:center;padding:30px;color:#555;font-size:0.85rem;">Немає авто. Додай перше у вкладці "+ Авто"</div>';
+
+  const carsHtml = devices.map(function(d){
+    return '<div class="fl-car">' +
+      '<div class="fl-car-head"><div>' +
+        '<div class="fl-car-title">'+d.name+'</div>' +
+        '<div class="fl-car-plate">IMEI: '+d.uniqueId+'</div>' +
+      '</div><span class="fl-badge fl-badge-ok">Активний</span></div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('fl-cars-list').innerHTML = devices.length
+    ? carsHtml
+    : '<div style="text-align:center;padding:30px;color:#555;font-size:0.85rem;">Немає авто</div>';
 }
 
 function flPeriod(p,btn){
@@ -1597,6 +1613,7 @@ function initMap() {
           window._isFleetOwner = true;
           sessionStorage.setItem('nt_last_screen', 'screen-fleet');
           showScreen('screen-fleet');
+          flRefreshOverview();
           return;
         }
         // Потім fleet_drivers
