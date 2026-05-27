@@ -477,9 +477,7 @@
       <button class="social-btn" onclick="closeRoleModal();signInGoogle();">
         <span class="icon">✉️</span> Увійти через Email
       </button>
-      <button class="social-btn" onclick="closeRoleModal();signInAppleClient();">
-        <span class="icon">🍎</span> Продовжити з Apple
-      </button>
+
       <div class="geo-warn" style="margin-top:12px;">
         <span class="icon">📍</span>
         <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Без геолокації не зможемо знайти найближчого водія</p></div>
@@ -525,9 +523,7 @@
       <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
         Увійти через Email →
       </button>
-      <button id="driver-continue-apple-btn" onclick="proceedDriverAuthApple()" style="width:100%;background:var(--surface);border:.5px solid var(--border);color:var(--text);padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;opacity:0.4;pointer-events:none;">
-        🍎 Продовжити з Apple →
-      </button>
+
       <div class="geo-warn" style="margin-top:12px;">
         <span class="icon">📍</span>
         <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Для відображення на карті і прийому замовлень</p></div>
@@ -555,9 +551,7 @@
       <button class="social-btn" onclick="closeRoleModal();signInFleetOwner();" style="background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);">
         <span class="icon">✉️</span> Увійти через Email
       </button>
-      <button class="social-btn" onclick="closeRoleModal();signInAppleFleet();" style="background:var(--surface);border-color:var(--border);">
-        <span class="icon">🍎</span> Увійти з Apple
-      </button>
+
       <div class="geo-warn" style="margin-top:12px;">
         <span class="icon">📍</span>
         <div><p>GPS обов'язковий</p><p style="font-size:0.78rem;">Для відстеження авто на карті в реальному часі</p></div>
@@ -600,9 +594,7 @@
       <button class="social-btn" onclick="closeRoleModal();signInTrackClient();" style="background:rgba(55,138,221,0.1);border-color:rgba(55,138,221,0.3);color:#378ADD;">
         <span class="icon">✉️</span> Увійти через Email
       </button>
-      <button class="social-btn" onclick="closeRoleModal();signInTrackClientApple();" style="background:var(--surface);border-color:var(--border);">
-        <span class="icon">🍎</span> Увійти з Apple
-      </button>
+
       <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
     </div>
 
@@ -1306,10 +1298,7 @@ function flSavePhone(){
       <span class="icon">✉️</span>
       Увійти через Email
     </button>
-    <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
-      <span class="icon">🍎</span>
-      Продовжити з Apple
-    </button>
+
     <div class="geo-warn">
       <span class="icon">📍</span>
       <div>
@@ -1464,10 +1453,7 @@ function flSavePhone(){
       <span class="icon">✉️</span>
       Увійти через Email
     </button>
-    <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
-      <span class="icon">🍎</span>
-      Продовжити з Apple
-    </button>
+
     <div class="geo-warn" style="margin-top:8px">
       <span class="icon">📍</span>
       <div>
@@ -1575,16 +1561,23 @@ function initMap() {
           localStorage.removeItem('nt_magic_email');
           const role = localStorage.getItem('nt_pending_role') || 'client';
           localStorage.removeItem('nt_pending_role');
-          return { user: result.user, role };
+          await applyRole(result.user, role);
+          // Чистимо URL
+          window.history.replaceState({}, document.title, window.location.pathname);
         } catch(e) {
           showToast('Помилка входу: ' + e.message);
         }
       }
     }
-    return null;
   }
 
   async function sendMagicLink(role) {
+    // Якщо вже залогінений — просто перемикаємо роль
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await applyRole(currentUser, role);
+      return;
+    }
     const email = prompt('Введіть ваш email:');
     if (!email || !email.includes('@')) {
       showToast('Введіть правильний email');
@@ -1595,10 +1588,46 @@ function initMap() {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       localStorage.setItem('nt_magic_email', email);
       localStorage.setItem('nt_pending_role', role);
-      showToast('✅ Посилання надіслано на ' + email + '! Перевірте пошту.');
+      showToast('✅ Посилання надіслано на ' + email + '! Перевірте пошту і натисніть посилання.');
     } catch(e) {
       showToast('Помилка: ' + e.message);
     }
+  }
+
+  // Застосовуємо роль до існуючого користувача
+  async function applyRole(user, role) {
+    window._currentUid = user.uid;
+    const displayName = user.displayName || user.email.split('@')[0];
+    const email = user.email;
+    if (role === 'client') {
+      const snap = await get(ref(db, 'clients/' + user.uid));
+      if (!snap.exists()) await set(ref(db, 'clients/' + user.uid), { name: displayName, email, created_at: new Date().toISOString(), trips_count: 0 });
+      const phone = localStorage.getItem('nt_phone');
+      showScreen(phone ? 'screen-main' : 'screen-phone');
+    } else if (role === 'driver') {
+      const driverType = localStorage.getItem('nt_driver_type') || 'taxi';
+      const snap = await get(ref(db, 'drivers/' + user.uid));
+      if (!snap.exists()) {
+        await set(ref(db, 'drivers/' + user.uid), { name: displayName, email, role: 'driver', driver_type: driverType, active: true, online: false, created_at: new Date().toISOString(), trial_until: new Date(Date.now() + 7*24*60*60*1000).toISOString() });
+      }
+      window._isDriver = true;
+      window._driverType = driverType;
+      const driverSnap = await get(ref(db, 'drivers/' + user.uid));
+      if (!driverSnap.val()?.registered) { showScreen('screen-driver-reg'); window.drvRegNext && window.drvRegNext(1); }
+      else { showScreen('screen-driver-main'); window.initDriverScreen && window.initDriverScreen(); }
+    } else if (role === 'fleet_owner') {
+      const snap = await get(ref(db, 'fleet_owners/' + user.uid));
+      if (!snap.exists()) await set(ref(db, 'fleet_owners/' + user.uid), { name: displayName, email, role: 'fleet_owner', created_at: new Date().toISOString() });
+      window._isFleetOwner = true;
+      showScreen('screen-fleet');
+    } else if (role === 'track_client') {
+      const snap = await get(ref(db, 'track_clients/' + user.uid));
+      if (!snap.exists()) await set(ref(db, 'track_clients/' + user.uid), { name: displayName, email, role: 'track_client', created_at: new Date().toISOString() });
+      window._isTrackClient = true;
+      showScreen('screen-track');
+      window.trackLoadDevices && window.trackLoadDevices();
+    }
+    showToast('✅ Вхід виконано!');
   }
 
   // ========== ONESIGNAL ПУШІ ==========
@@ -1722,6 +1751,9 @@ function initMap() {
       document.getElementById('prof-phone').textContent = localStorage.getItem('nt_phone') || 'не вказано';
     }
   };
+
+  // Перевіряємо Magic Link при старті
+  checkMagicLink();
 
   // стан авторизації
   onAuthStateChanged(auth, user => {
@@ -5194,7 +5226,7 @@ function initMap() {
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:.5px solid var(--border)">
       <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:12px">🙋 Я пасажир — замовити таксі</div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Увійдіть через Google або Apple</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Вкажіть номер телефону — водій зможе зателефонувати</div></div></div>
+        <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Увійдіть через Email</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Вкажіть номер телефону — водій зможе зателефонувати</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Виберіть тип і натисніть "Викликати"</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Стандарт, Бус, Вантаж. Ціна відома заздалегідь.</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Чекайте — буде звук і вібрація</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Статуси: прийнято → виїхав → прибув</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Оплата готівкою водієві</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Тариф фіксований по лічильнику</div></div></div>
@@ -5217,7 +5249,7 @@ function initMap() {
     <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:12px;border:.5px solid rgba(245,200,66,0.2)">
       <div style="font-size:15px;font-weight:500;color:var(--accent);margin-bottom:12px">🚖 Автопарк — контроль водіїв</div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Увійдіть як Автопарк</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Google або Apple — окремий кабінет власника</div></div></div>
+        <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Увійдіть як Автопарк</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Email — окремий кабінет власника</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Додайте авто — вкажіть IMEI трекера</div><div style="font-size:12px;color:var(--muted);margin-top:2px">15 цифр на корпусі трекера. Трекер 2200 грн + SIM всередині.</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Видайте код водієві</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Водій вводить код при реєстрації — прив'язується до авто</div></div></div>
         <div style="display:flex;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--black);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div><div><div style="font-size:13px;font-weight:500;color:var(--text)">Стежте за картою і звітами</div><div style="font-size:12px;color:var(--muted);margin-top:2px">GPS трекер vs додаток водія — розбіжності видно одразу</div></div></div>
