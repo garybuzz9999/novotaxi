@@ -475,7 +475,7 @@
         <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Один тап — і ви в системі</div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInGoogle();">
-        <span class="icon">✉️</span> Увійти через Email
+        <span class="icon">✉️</span> Увійти / Реєстрація
       </button>
 
       <div class="geo-warn" style="margin-top:12px;">
@@ -521,7 +521,7 @@
       </div>
       <div id="fleet-driver-code-wrap" style="display:none;"></div>
       <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
-        Увійти через Email →
+        Увійти / Реєстрація →
       </button>
 
       <div class="geo-warn" style="margin-top:12px;">
@@ -549,7 +549,7 @@
         </div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInFleetOwner();" style="background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);">
-        <span class="icon">✉️</span> Увійти через Email
+        <span class="icon">✉️</span> Увійти / Реєстрація
       </button>
 
       <div class="geo-warn" style="margin-top:12px;">
@@ -592,7 +592,7 @@
         </div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInTrackClient();" style="background:rgba(55,138,221,0.1);border-color:rgba(55,138,221,0.3);color:#378ADD;">
-        <span class="icon">✉️</span> Увійти через Email
+        <span class="icon">✉️</span> Увійти / Реєстрація
       </button>
 
       <button onclick="closeRoleModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
@@ -1519,7 +1519,7 @@ function initMap() {
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getDatabase, ref, set, get, push, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-  import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     onAuthStateChanged, signOut }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getMessaging, getToken, onMessage }
@@ -1541,69 +1541,64 @@ function initMap() {
   const auth = getAuth(app);
 
   // ========== MAGIC LINK AUTH ==========
-  const actionCodeSettings = {
-    url: 'https://garybuzz9999.github.io/novotaxi/novotaxi.html',
-    handleCodeInApp: true,
-    android: { packageName: 'com.novotaxi.app', installApp: true, minimumVersion: '1' },
-    iOS: { bundleId: 'com.novotaxi.app' }
+  // ========== EMAIL + ПАРОЛЬ АВТОРИЗАЦІЯ ==========
+  async function showEmailAuthModal(role) {
+    // Якщо вже залогінений — просто перемикаємо роль
+    if (auth.currentUser) {
+      await applyRole(auth.currentUser, role);
+      return;
+    }
+    // Показуємо модалку email+пароль
+    const modal = document.getElementById('email-auth-modal');
+    document.getElementById('email-auth-role').value = role;
+    document.getElementById('email-auth-error').textContent = '';
+    modal.style.display = 'flex';
+  }
+
+  window.closeEmailAuthModal = function() {
+    document.getElementById('email-auth-modal').style.display = 'none';
   };
 
-  // Перевіряємо чи це повернення після Magic Link
-  async function checkMagicLink() {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      let email = localStorage.getItem('nt_magic_email');
-      if (!email) {
-        email = window.prompt('Введіть ваш email для підтвердження:');
-      }
-      if (email) {
-        try {
-          const result = await signInWithEmailLink(auth, email, window.location.href);
-          localStorage.removeItem('nt_magic_email');
-          const role = localStorage.getItem('nt_pending_role') || 'client';
-          localStorage.removeItem('nt_pending_role');
-          await applyRole(result.user, role);
-          // Чистимо URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch(e) {
-          showToast('Помилка входу: ' + e.message);
+  window.submitEmailAuth = async function() {
+    const email = document.getElementById('email-auth-input').value.trim();
+    const pass = document.getElementById('pass-auth-input').value;
+    const role = document.getElementById('email-auth-role').value;
+    const errEl = document.getElementById('email-auth-error');
+    if (!email || !email.includes('@')) { errEl.textContent = 'Введіть правильний email'; return; }
+    if (!pass || pass.length < 6) { errEl.textContent = 'Пароль мінімум 6 символів'; return; }
+    errEl.textContent = '';
+    try {
+      let result;
+      try {
+        result = await signInWithEmailAndPassword(auth, email, pass);
+      } catch(e) {
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+          result = await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+          throw e;
         }
       }
-    }
-  }
-
-  async function sendMagicLink(role) {
-    // Якщо вже залогінений — просто перемикаємо роль
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      await applyRole(currentUser, role);
-      return;
-    }
-    const email = prompt('Введіть ваш email:');
-    if (!email || !email.includes('@')) {
-      showToast('Введіть правильний email');
-      return;
-    }
-    try {
-      showToast('Надсилаємо посилання...');
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      localStorage.setItem('nt_magic_email', email);
-      localStorage.setItem('nt_pending_role', role);
-      showToast('✅ Посилання надіслано на ' + email + '! Перевірте пошту і натисніть посилання.');
+      closeEmailAuthModal();
+      await applyRole(result.user, role);
     } catch(e) {
-      showToast('Помилка: ' + e.message);
+      if (e.code === 'auth/wrong-password') errEl.textContent = 'Невірний пароль';
+      else if (e.code === 'auth/email-already-in-use') errEl.textContent = 'Email вже використовується';
+      else errEl.textContent = e.message;
     }
-  }
+  };
 
   // Застосовуємо роль до існуючого користувача
   async function applyRole(user, role) {
     window._currentUid = user.uid;
     const displayName = user.displayName || user.email.split('@')[0];
     const email = user.email;
+    closeEmailAuthModal();
     if (role === 'client') {
       const snap = await get(ref(db, 'clients/' + user.uid));
       if (!snap.exists()) await set(ref(db, 'clients/' + user.uid), { name: displayName, email, created_at: new Date().toISOString(), trips_count: 0 });
       const phone = localStorage.getItem('nt_phone');
       showScreen(phone ? 'screen-main' : 'screen-phone');
+      if (phone && window.startClientNotifListener) window.startClientNotifListener();
     } else if (role === 'driver') {
       const driverType = localStorage.getItem('nt_driver_type') || 'taxi';
       const snap = await get(ref(db, 'drivers/' + user.uid));
@@ -1620,6 +1615,7 @@ function initMap() {
       if (!snap.exists()) await set(ref(db, 'fleet_owners/' + user.uid), { name: displayName, email, role: 'fleet_owner', created_at: new Date().toISOString() });
       window._isFleetOwner = true;
       showScreen('screen-fleet');
+      if (window.flRefreshOverview) flRefreshOverview();
     } else if (role === 'track_client') {
       const snap = await get(ref(db, 'track_clients/' + user.uid));
       if (!snap.exists()) await set(ref(db, 'track_clients/' + user.uid), { name: displayName, email, role: 'track_client', created_at: new Date().toISOString() });
@@ -1630,7 +1626,7 @@ function initMap() {
     showToast('✅ Вхід виконано!');
   }
 
-  // ========== ONESIGNAL ПУШІ ==========
+    // ========== ONESIGNAL ПУШІ ==========
   async function initFCM(userUid) {
     try {
       // Зберігаємо OneSignal Player ID для водія
@@ -1752,9 +1748,6 @@ function initMap() {
     }
   };
 
-  // Перевіряємо Magic Link при старті
-  checkMagicLink();
-
   // стан авторизації
   onAuthStateChanged(auth, user => {
     document.getElementById('loader').style.display = 'none';
@@ -1853,7 +1846,7 @@ function initMap() {
       btnA.textContent = '🍎 Підключитись через Apple →';
     } else {
       document.getElementById('fleet-driver-code-wrap').style.display = 'none';
-      btn.textContent = 'Увійти через Email →';
+      btn.textContent = 'Увійти / Реєстрація →';
       btnA.textContent = '🍎 Продовжити з Apple →';
     }
   };
@@ -1946,25 +1939,25 @@ function initMap() {
   };
 
   window.signInTrackClient = async function() {
-    await sendMagicLink('track_client');
+    await showEmailAuthModal('track_client');
   };
 
   window.signInTrackClientApple = async function() {
-    await sendMagicLink('track_client');
+    await showEmailAuthModal('track_client');
   };
 
   window.signInFleetOwner = async function() {
-    await sendMagicLink('fleet_owner');
+    await showEmailAuthModal('fleet_owner');
   };
 
   // Google Sign In для ВОДІЯ
   window.signInDriverGoogle = async () => {
-    await sendMagicLink('driver');
+    await showEmailAuthModal('driver');
   };
 
   // Magic Link Sign In для КЛІЄНТА
   window.signInGoogle = async () => {
-    await sendMagicLink('client');
+    await showEmailAuthModal('client');
   };
 
   // Зберегти телефон
@@ -5291,5 +5284,23 @@ function initMap() {
   </div>
 </div>
 
+
+<!-- EMAIL AUTH MODAL -->
+<div id="email-auth-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:18px;padding:24px;width:100%;max-width:400px;border:.5px solid var(--border);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:2rem;">✉️</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-top:8px;">Вхід / Реєстрація</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Один акаунт для всіх ролей</div>
+    </div>
+    <input type="hidden" id="email-auth-role" value="client">
+    <input type="email" id="email-auth-input" placeholder="Email" style="width:100%;background:var(--bg);border:.5px solid var(--border);color:var(--text);padding:14px;border-radius:12px;font-size:16px;margin-bottom:12px;font-family:inherit;outline:none;">
+    <input type="password" id="pass-auth-input" placeholder="Пароль (мін. 6 символів)" style="width:100%;background:var(--bg);border:.5px solid var(--border);color:var(--text);padding:14px;border-radius:12px;font-size:16px;margin-bottom:8px;font-family:inherit;outline:none;">
+    <div id="email-auth-error" style="color:var(--red);font-size:13px;min-height:20px;margin-bottom:12px;text-align:center;"></div>
+    <button onclick="submitEmailAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">Увійти</button>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px;">Якщо акаунту немає — він створюється автоматично</div>
+    <button onclick="closeEmailAuthModal()" style="width:100%;margin-top:10px;background:none;border:.5px solid var(--border);color:var(--muted);padding:12px;border-radius:12px;font-size:14px;cursor:pointer;">Скасувати</button>
+  </div>
+</div>
 </body>
 </html>
