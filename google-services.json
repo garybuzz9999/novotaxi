@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "6765698996-5166pgpgf2jaq9d63314sfneglkpf0fp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.novotaxi.app",
+            "certificate_hash": "16cc3d55c089af13566566e802473cf21e7a93fc"
+          }
+        },
+        {
           "client_id": "6765698996-egutibg08rvp8s33413undcos5dpv38j.apps.googleusercontent.com",
           "client_type": 3
         }
