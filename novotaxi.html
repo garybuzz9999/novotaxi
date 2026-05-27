@@ -1760,16 +1760,14 @@ function initMap() {
     document.getElementById('loader').style.display = 'none';
     if (user) {
       window._currentUid = user.uid;
-      // Спочатку перевіряємо fleet_owners
+      // Перевіряємо всі ролі послідовно
       get(ref(db, 'fleet_owners/' + user.uid)).then(function(fleetSnap) {
         if (fleetSnap.exists()) {
           window._isFleetOwner = true;
-          sessionStorage.setItem('nt_last_screen', 'screen-fleet');
           showScreen('screen-fleet');
-          flRefreshOverview();
+          if (window.flRefreshOverview) flRefreshOverview();
           return;
         }
-        // Потім fleet_drivers
         return get(ref(db, 'fleet_drivers/' + user.uid)).then(function(fdSnap) {
           if (fdSnap.exists()) {
             window._isDriver = true;
@@ -1778,7 +1776,6 @@ function initMap() {
             if (window.initDriverScreen) window.initDriverScreen();
             return;
           }
-          // Потім звичайні водії
           return get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
             if (snap.exists()) {
               window._isDriver = true;
@@ -1791,30 +1788,31 @@ function initMap() {
                 showScreen('screen-driver-main');
                 if (window.initDriverScreen) window.initDriverScreen();
               }
-            } else {
-              window._isDriver = false;
-              var phone = localStorage.getItem('nt_phone');
-              if (phone) {
-                showScreen('screen-main');
-                if (window.startClientNotifListener) window.startClientNotifListener();
-              } else {
-                showScreen('screen-phone');
-              }
+              return;
             }
+            return get(ref(db, 'track_clients/' + user.uid)).then(function(trackSnap) {
+              if (trackSnap.exists()) {
+                window._isTrackClient = true;
+                showScreen('screen-track');
+                if (window.trackLoadDevices) window.trackLoadDevices();
+                return;
+              }
+              return get(ref(db, 'clients/' + user.uid)).then(function(clientSnap) {
+                if (clientSnap.exists()) {
+                  var phone = localStorage.getItem('nt_phone');
+                  showScreen(phone ? 'screen-main' : 'screen-phone');
+                  if (phone && window.startClientNotifListener) window.startClientNotifListener();
+                  return;
+                }
+                // Немає жодної ролі — показуємо вибір
+                showScreen('screen-role');
+              });
+            });
           });
         });
       }).catch(function() { showScreen('screen-role'); });
     } else {
-      var savedPhone = localStorage.getItem('nt_phone');
-      var lastScreen = sessionStorage.getItem('nt_last_screen');
-      if (savedPhone) {
-        showScreen('screen-main');
-        if (window.startClientNotifListener) window.startClientNotifListener();
-      } else if (lastScreen && lastScreen === 'screen-fleet') {
-        showScreen('screen-fleet');
-      } else {
-        showScreen('screen-role');
-      }
+      showScreen('screen-role');
     }
   });
 
