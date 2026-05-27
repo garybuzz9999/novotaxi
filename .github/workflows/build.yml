@@ -41,14 +41,25 @@ jobs:
           sed -i 's/targetSdkVersion = .*/targetSdkVersion = 34/' android/variables.gradle
           sed -i 's/compileSdkVersion = .*/compileSdkVersion = 34/' android/variables.gradle
 
-      - name: Build APK
+      - name: Generate Keystore
+        run: |
+          keytool -genkey -v -keystore novotaxi.keystore \
+            -alias novotaxi -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=NovoTaxi, OU=App, O=NovoTaxi, L=Zvyahel, S=Zhytomyr, C=UA" \
+            -storepass novotaxi2026 -keypass novotaxi2026
+
+      - name: Build Release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/novotaxi.keystore \
+            -Pandroid.injected.signing.store.password=novotaxi2026 \
+            -Pandroid.injected.signing.key.alias=novotaxi \
+            -Pandroid.injected.signing.key.password=novotaxi2026
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: novotaxi-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: novotaxi-release
+          path: android/app/build/outputs/apk/release/app-release.apk
