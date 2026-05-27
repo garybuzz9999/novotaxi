@@ -36,6 +36,11 @@ jobs:
           npx cap init NovoTaxi com.novotaxi.app --web-dir www
           npx cap add android
 
+      - name: Fix targetSdk
+        run: |
+          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 35/' android/variables.gradle
+          sed -i 's/compileSdkVersion = .*/compileSdkVersion = 35/' android/variables.gradle
+
       - name: Build APK
         run: |
           cd android
