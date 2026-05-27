@@ -1534,7 +1534,8 @@ function initMap() {
   import { getDatabase, ref, set, get, push, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
   import { getAuth, signInWithPopup, GoogleAuthProvider,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut,
+    browserLocalPersistence, setPersistence }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getMessaging, getToken, onMessage }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
@@ -1553,7 +1554,26 @@ function initMap() {
   const db = getDatabase(app);
   window._db = db;
   const auth = getAuth(app);
+  const isCapacitor = window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost';
+  setPersistence(auth, browserLocalPersistence).catch(()=>{});
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  // ========== GOOGLE AUTH HELPER ==========
+  async function googleSignIn() {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      return result;
+    } catch(e) {
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        throw new Error('Вхід скасовано. Спробуйте ще раз.');
+      }
+      if (e.code === 'auth/internal-error' || e.message.includes('sessionStorage')) {
+        throw new Error('Помилка браузера. Увійдіть через email нижче.');
+      }
+      throw e;
+    }
+  }
 
   // ========== ONESIGNAL ПУШІ ==========
   async function initFCM(userUid) {
@@ -1872,7 +1892,7 @@ function initMap() {
   window.signInTrackClient = async function() {
     try {
       showToast('Відкриваємо Google...');
-      const result = await signInWithPopup(auth, provider);
+      const result = await googleSignIn();
       const user = result.user;
       await set(ref(db, 'track_clients/' + user.uid), {
         name: user.displayName || 'Клієнт',
@@ -1913,7 +1933,7 @@ function initMap() {
   window.signInFleetOwner = async function() {
     try {
       showToast('Відкриваємо Google...');
-      const result = await signInWithPopup(auth, provider);
+      const result = await googleSignIn();
       const user = result.user;
       await set(ref(db, 'fleet_owners/' + user.uid), {
         name: user.displayName || 'Власник',
@@ -1935,7 +1955,7 @@ function initMap() {
   window.signInDriverGoogle = async () => {
     try {
       showToast('Відкриваємо Google...');
-      const result = await signInWithPopup(auth, provider);
+      const result = await googleSignIn();
       const user = result.user;
       const driverType = localStorage.getItem('nt_driver_type') || 'taxi';
       const fleetCode = sessionStorage.getItem('nt_fleet_driver_code') || null;
@@ -2004,7 +2024,7 @@ function initMap() {
   window.signInGoogle = async () => {
     try {
       showToast('Відкриваємо Google...');
-      const result = await signInWithPopup(auth, provider);
+      const result = await googleSignIn();
       const user = result.user;
       // зберігаємо клієнта в базі
       await set(ref(db, 'clients/' + user.uid), {
