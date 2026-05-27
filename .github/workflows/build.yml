@@ -25,7 +25,6 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          npm install @codetrix-studio/capacitor-google-auth
 
       - name: Prepare web dir
         run: |
@@ -37,10 +36,19 @@ jobs:
           npx cap init NovoTaxi com.novotaxi.app --web-dir www
           npx cap add android
 
+      - name: Fix targetSdk to 34
+        run: |
+          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 34/' android/variables.gradle
+          sed -i 's/compileSdkVersion = .*/compileSdkVersion = 34/' android/variables.gradle
+
+      - name: Allow HTTP cleartext
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+
       - name: Copy google-services.json
         run: cp google-services.json android/app/google-services.json
 
-      - name: Sync Capacitor plugins
+      - name: Sync Capacitor
         run: npx cap sync android
 
       - name: Generate Keystore & Build Release APK
