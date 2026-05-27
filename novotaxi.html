@@ -1533,9 +1533,8 @@ function initMap() {
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getDatabase, ref, set, get, push, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-  import { getAuth, signInWithPopup, GoogleAuthProvider,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    browserLocalPersistence, setPersistence }
+  import { getAuth, signInWithCredential, GoogleAuthProvider,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getMessaging, getToken, onMessage }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
@@ -1554,22 +1553,26 @@ function initMap() {
   const db = getDatabase(app);
   window._db = db;
   const auth = getAuth(app);
-  const isCapacitor = window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost';
-  setPersistence(auth, browserLocalPersistence).catch(()=>{});
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
 
-  // ========== GOOGLE AUTH HELPER ==========
+  // ========== GOOGLE AUTH HELPER (нативний Capacitor) ==========
   async function googleSignIn() {
     try {
-      const result = await signInWithPopup(auth, provider);
-      return result;
-    } catch(e) {
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-        throw new Error('Вхід скасовано. Спробуйте ще раз.');
+      // Перевіряємо чи доступний нативний плагін
+      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        const { GoogleAuth } = window.Capacitor.Plugins;
+        const googleUser = await GoogleAuth.signIn();
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        const result = await signInWithCredential(auth, credential);
+        return result;
+      } else {
+        // Браузер — використовуємо звичайний popup
+        const { signInWithPopup, GoogleAuthProvider: GA } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        const provider = new GA();
+        return await signInWithPopup(auth, provider);
       }
-      if (e.code === 'auth/internal-error' || e.message.includes('sessionStorage')) {
-        throw new Error('Помилка браузера. Увійдіть через email нижче.');
+    } catch(e) {
+      if (e.message && e.message.includes('cancel')) {
+        throw new Error('Вхід скасовано.');
       }
       throw e;
     }
