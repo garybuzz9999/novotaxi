@@ -12,6 +12,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *;">
 <title>NovoTaxi v2.1</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -888,6 +889,31 @@
 </div>
 
 <script>
+// ===== HTTP FETCH HELPER (обходить обмеження WebView) =====
+function traccarFetch(url, options) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(options && options.method ? options.method : 'GET', url, true);
+    if (options && options.headers) {
+      Object.keys(options.headers).forEach(function(key) {
+        xhr.setRequestHeader(key, options.headers[key]);
+      });
+    }
+    xhr.onload = function() {
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        json: function() { return Promise.resolve(JSON.parse(xhr.responseText)); },
+        text: function() { return Promise.resolve(xhr.responseText); }
+      });
+    };
+    xhr.onerror = function() { reject(new Error('Network error')); };
+    xhr.ontimeout = function() { reject(new Error('Timeout')); };
+    xhr.timeout = 10000;
+    xhr.send(options && options.body ? options.body : null);
+  });
+}
+
 // ===== TRACCAR CONFIG =====
 const TRACCAR_URL = 'http://134.209.252.179:8082';
 const TRACCAR_USER = 'admin';
@@ -908,7 +934,7 @@ function flInitMap() {
 
 async function flLoadTraccarDevices() {
   try {
-    const r = await fetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
+    const r = await traccarFetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
     if (!r.ok) return [];
     return await r.json();
   } catch(e) { return []; }
@@ -916,7 +942,7 @@ async function flLoadTraccarDevices() {
 
 async function flLoadTraccarPositions() {
   try {
-    const r = await fetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
+    const r = await traccarFetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
     if (!r.ok) return [];
     return await r.json();
   } catch(e) { return []; }
@@ -1179,7 +1205,7 @@ async function flActivate(){
     const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
 
     // Перевіряємо чи пристрій вже існує
-    const existing = await fetch(TRACCAR_URL + '/api/devices', {
+    const existing = await traccarFetch(TRACCAR_URL + '/api/devices', {
       headers: {'Authorization': TRACCAR_AUTH}
     });
     const devices = await existing.json();
@@ -1193,7 +1219,7 @@ async function flActivate(){
 
     // Створюємо пристрій в Traccar
     const deviceName = plate + (year ? ' · ' + year : '') + (color ? ' · ' + color : '');
-    const res = await fetch(TRACCAR_URL + '/api/devices', {
+    const res = await traccarFetch(TRACCAR_URL + '/api/devices', {
       method: 'POST',
       headers: {'Authorization': TRACCAR_AUTH, 'Content-Type': 'application/json'},
       body: JSON.stringify({name: deviceName, uniqueId: imei})
@@ -1246,7 +1272,7 @@ function flSavePhone(){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.06);">
       <button onclick="showScreen('screen-role')" style="background:none;border:none;color:#666;font-size:1.4rem;cursor:pointer;">‹</button>
       <div style="font-size:1rem;font-weight:700;color:#378ADD;">📡 NovoTrack</div>
-      <div style="width:32px;"></div>
+      <button onclick="signOutUser()" style="background:none;border:none;color:#ff453a;font-size:0.8rem;cursor:pointer;padding:4px 8px;">Вийти</button>
     </div>
     <div style="padding:20px;flex:1;">
 
@@ -1887,11 +1913,11 @@ function initMap() {
     try {
       const TRACCAR_URL = 'http://134.209.252.179:8082';
       const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
-      const existing = await fetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
+      const existing = await traccarFetch(TRACCAR_URL + '/api/devices', {headers:{'Authorization':TRACCAR_AUTH}});
       const devices = await existing.json();
       const already = devices.find(d => d.uniqueId === imei);
       if (already) { showToast('⚠ Цей IMEI вже зареєстрований'); return; }
-      const res = await fetch(TRACCAR_URL + '/api/devices', {
+      const res = await traccarFetch(TRACCAR_URL + '/api/devices', {
         method: 'POST',
         headers: {'Authorization': TRACCAR_AUTH, 'Content-Type': 'application/json'},
         body: JSON.stringify({name: name, uniqueId: imei})
@@ -1920,7 +1946,7 @@ function initMap() {
       const devices = snap.val();
       const TRACCAR_URL = 'http://134.209.252.179:8082';
       const TRACCAR_AUTH = 'Basic ' + btoa('admin:admin');
-      const posRes = await fetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
+      const posRes = await traccarFetch(TRACCAR_URL + '/api/positions', {headers:{'Authorization':TRACCAR_AUTH}});
       const positions = posRes.ok ? await posRes.json() : [];
       list.innerHTML = Object.values(devices).map(function(d) {
         const pos = positions.find(function(p){ return p.deviceId == d.traccar_id; });
