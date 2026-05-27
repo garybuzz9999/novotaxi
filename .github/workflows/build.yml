@@ -21,12 +21,6 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Android SDK platform 35
-        run: |
-          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
       - name: Install dependencies
         run: |
           npm init -y
@@ -42,10 +36,10 @@ jobs:
           npx cap init NovoTaxi com.novotaxi.app --web-dir www
           npx cap add android
 
-      - name: Fix targetSdk
+      - name: Fix targetSdk to 34
         run: |
-          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 35/' android/variables.gradle
-          sed -i 's/compileSdkVersion = .*/compileSdkVersion = 35/' android/variables.gradle
+          sed -i 's/targetSdkVersion = .*/targetSdkVersion = 34/' android/variables.gradle
+          sed -i 's/compileSdkVersion = .*/compileSdkVersion = 34/' android/variables.gradle
 
       - name: Build APK
         run: |
