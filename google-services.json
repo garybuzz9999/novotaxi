@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "6765698996",
+    "firebase_url": "https://novotaxi-fcb7f-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "novotaxi-fcb7f",
+    "storage_bucket": "novotaxi-fcb7f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6765698996:android:f17e7b626df08f94f7dce1",
+        "android_client_info": {
+          "package_name": "com.novotaxi.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "6765698996-egutibg08rvp8s33413undcos5dpv38j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCG4g4QEKGVHPayGAL8X8D-9tKwTwvx2cI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "6765698996-egutibg08rvp8s33413undcos5dpv38j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
