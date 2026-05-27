@@ -41,12 +41,17 @@ jobs:
           sed -i 's/targetSdkVersion = .*/targetSdkVersion = 34/' android/variables.gradle
           sed -i 's/compileSdkVersion = .*/compileSdkVersion = 34/' android/variables.gradle
 
-      - name: Generate Keystore
+      - name: Copy google-services.json
+        run: cp google-services.json android/app/google-services.json
+
+      - name: Print SHA-1
         run: |
           keytool -genkey -v -keystore novotaxi.keystore \
             -alias novotaxi -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=NovoTaxi, OU=App, O=NovoTaxi, L=Zvyahel, S=Zhytomyr, C=UA" \
             -storepass novotaxi2026 -keypass novotaxi2026
+          keytool -list -v -keystore novotaxi.keystore \
+            -alias novotaxi -storepass novotaxi2026 | grep SHA1
 
       - name: Build Release APK
         run: |
