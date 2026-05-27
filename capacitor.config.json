@@ -1,0 +1,12 @@
+{
+  "appId": "com.novotaxi.app",
+  "appName": "NovoTaxi",
+  "webDir": "www",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "6765698996-egutibg08rvp8s33413undcos5dpv38j.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}
