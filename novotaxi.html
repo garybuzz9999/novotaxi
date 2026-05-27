@@ -475,7 +475,7 @@
         <div style="font-size:0.82rem;color:var(--muted);margin-top:4px;">Один тап — і ви в системі</div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInGoogle();">
-        <span class="icon">🔵</span> Продовжити з Google
+        <span class="icon">✉️</span> Увійти через Email
       </button>
       <button class="social-btn" onclick="closeRoleModal();signInAppleClient();">
         <span class="icon">🍎</span> Продовжити з Apple
@@ -523,7 +523,7 @@
       </div>
       <div id="fleet-driver-code-wrap" style="display:none;"></div>
       <button id="driver-continue-btn" onclick="proceedDriverAuth()" style="width:100%;background:var(--accent);border:none;color:#000;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;pointer-events:none;">
-        Продовжити з Google →
+        Увійти через Email →
       </button>
       <button id="driver-continue-apple-btn" onclick="proceedDriverAuthApple()" style="width:100%;background:var(--surface);border:.5px solid var(--border);color:var(--text);padding:14px;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;opacity:0.4;pointer-events:none;">
         🍎 Продовжити з Apple →
@@ -553,7 +553,7 @@
         </div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInFleetOwner();" style="background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);">
-        <span class="icon">🔵</span> Увійти з Google
+        <span class="icon">✉️</span> Увійти через Email
       </button>
       <button class="social-btn" onclick="closeRoleModal();signInAppleFleet();" style="background:var(--surface);border-color:var(--border);">
         <span class="icon">🍎</span> Увійти з Apple
@@ -598,7 +598,7 @@
         </div>
       </div>
       <button class="social-btn" onclick="closeRoleModal();signInTrackClient();" style="background:rgba(55,138,221,0.1);border-color:rgba(55,138,221,0.3);color:#378ADD;">
-        <span class="icon">🔵</span> Увійти з Google
+        <span class="icon">✉️</span> Увійти через Email
       </button>
       <button class="social-btn" onclick="closeRoleModal();signInTrackClientApple();" style="background:var(--surface);border-color:var(--border);">
         <span class="icon">🍎</span> Увійти з Apple
@@ -1303,8 +1303,8 @@ function flSavePhone(){
       <div class="auth-sub">Один тап — і ви в системі</div>
     </div>
     <button class="social-btn" onclick="signInGoogle()">
-      <span class="icon">🔵</span>
-      Продовжити з Google
+      <span class="icon">✉️</span>
+      Увійти через Email
     </button>
     <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
       <span class="icon">🍎</span>
@@ -1461,8 +1461,8 @@ function flSavePhone(){
       <div class="auth-sub">7 днів безкоштовно.<br>Далі <span id="auth-price">300</span> грн/міс — оплата в додатку.</div>
     </div>
     <button class="social-btn" onclick="signInDriverGoogle()">
-      <span class="icon">🔵</span>
-      Продовжити з Google
+      <span class="icon">✉️</span>
+      Увійти через Email
     </button>
     <button class="social-btn" onclick="showToast('Apple — буде доступно в Flutter додатку')">
       <span class="icon">🍎</span>
@@ -1533,8 +1533,8 @@ function initMap() {
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getDatabase, ref, set, get, push, onValue }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-  import { getAuth, signInWithCredential, GoogleAuthProvider,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink,
+    onAuthStateChanged, signOut }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getMessaging, getToken, onMessage }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
@@ -1554,27 +1554,50 @@ function initMap() {
   window._db = db;
   const auth = getAuth(app);
 
-  // ========== GOOGLE AUTH HELPER (нативний Capacitor) ==========
-  async function googleSignIn() {
+  // ========== MAGIC LINK AUTH ==========
+  const actionCodeSettings = {
+    url: 'https://novotaxi-fcb7f.firebaseapp.com/finishSignIn',
+    handleCodeInApp: true,
+    android: { packageName: 'com.novotaxi.app', installApp: true, minimumVersion: '1' },
+    iOS: { bundleId: 'com.novotaxi.app' }
+  };
+
+  // Перевіряємо чи це повернення після Magic Link
+  async function checkMagicLink() {
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let email = localStorage.getItem('nt_magic_email');
+      if (!email) {
+        email = window.prompt('Введіть ваш email для підтвердження:');
+      }
+      if (email) {
+        try {
+          const result = await signInWithEmailLink(auth, email, window.location.href);
+          localStorage.removeItem('nt_magic_email');
+          const role = localStorage.getItem('nt_pending_role') || 'client';
+          localStorage.removeItem('nt_pending_role');
+          return { user: result.user, role };
+        } catch(e) {
+          showToast('Помилка входу: ' + e.message);
+        }
+      }
+    }
+    return null;
+  }
+
+  async function sendMagicLink(role) {
+    const email = prompt('Введіть ваш email:');
+    if (!email || !email.includes('@')) {
+      showToast('Введіть правильний email');
+      return;
+    }
     try {
-      // Перевіряємо чи доступний нативний плагін
-      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-        const { GoogleAuth } = window.Capacitor.Plugins;
-        const googleUser = await GoogleAuth.signIn();
-        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-        const result = await signInWithCredential(auth, credential);
-        return result;
-      } else {
-        // Браузер — використовуємо звичайний popup
-        const { signInWithPopup, GoogleAuthProvider: GA } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
-        const provider = new GA();
-        return await signInWithPopup(auth, provider);
-      }
+      showToast('Надсилаємо посилання...');
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      localStorage.setItem('nt_magic_email', email);
+      localStorage.setItem('nt_pending_role', role);
+      showToast('✅ Посилання надіслано на ' + email + '! Перевірте пошту.');
     } catch(e) {
-      if (e.message && e.message.includes('cancel')) {
-        throw new Error('Вхід скасовано.');
-      }
-      throw e;
+      showToast('Помилка: ' + e.message);
     }
   }
 
@@ -1800,7 +1823,7 @@ function initMap() {
       btnA.textContent = '🍎 Підключитись через Apple →';
     } else {
       document.getElementById('fleet-driver-code-wrap').style.display = 'none';
-      btn.textContent = 'Продовжити з Google →';
+      btn.textContent = 'Увійти через Email →';
       btnA.textContent = '🍎 Продовжити з Apple →';
     }
   };
@@ -1893,157 +1916,25 @@ function initMap() {
   };
 
   window.signInTrackClient = async function() {
-    try {
-      showToast('Відкриваємо Google...');
-      const result = await googleSignIn();
-      const user = result.user;
-      await set(ref(db, 'track_clients/' + user.uid), {
-        name: user.displayName || 'Клієнт',
-        email: user.email,
-        role: 'track_client',
-        created_at: new Date().toISOString()
-      });
-      window._currentUid = user.uid;
-      window._isTrackClient = true;
-      sessionStorage.setItem('nt_last_screen', 'screen-track');
-      showToast('✅ Вхід виконано!');
-      showScreen('screen-track');
-      if (window.trackLoadDevices) window.trackLoadDevices();
-    } catch(e) { showToast('Помилка: ' + e.message); }
+    await sendMagicLink('track_client');
   };
 
   window.signInTrackClientApple = async function() {
-    try {
-      showToast('Відкриваємо Apple...');
-      const appleProvider = new OAuthProvider('apple.com');
-      const result = await signInWithPopup(auth, appleProvider);
-      const user = result.user;
-      await set(ref(db, 'track_clients/' + user.uid), {
-        name: user.displayName || 'Клієнт',
-        email: user.email,
-        role: 'track_client',
-        created_at: new Date().toISOString()
-      });
-      window._currentUid = user.uid;
-      window._isTrackClient = true;
-      sessionStorage.setItem('nt_last_screen', 'screen-track');
-      showToast('✅ Вхід виконано!');
-      showScreen('screen-track');
-      if (window.trackLoadDevices) window.trackLoadDevices();
-    } catch(e) { showToast('Помилка: ' + e.message); }
+    await sendMagicLink('track_client');
   };
 
   window.signInFleetOwner = async function() {
-    try {
-      showToast('Відкриваємо Google...');
-      const result = await googleSignIn();
-      const user = result.user;
-      await set(ref(db, 'fleet_owners/' + user.uid), {
-        name: user.displayName || 'Власник',
-        email: user.email,
-        role: 'fleet_owner',
-        created_at: new Date().toISOString()
-      });
-      window._currentUid = user.uid;
-      window._isFleetOwner = true;
-      sessionStorage.setItem('nt_last_screen', 'screen-fleet');
-      showToast('✅ Вхід виконано!');
-      showScreen('screen-fleet');
-    } catch(e) {
-      showToast('Помилка: ' + e.message);
-    }
+    await sendMagicLink('fleet_owner');
   };
 
   // Google Sign In для ВОДІЯ
   window.signInDriverGoogle = async () => {
-    try {
-      showToast('Відкриваємо Google...');
-      const result = await googleSignIn();
-      const user = result.user;
-      const driverType = localStorage.getItem('nt_driver_type') || 'taxi';
-      const fleetCode = sessionStorage.getItem('nt_fleet_driver_code') || null;
-
-      if (driverType === 'fleet_driver') {
-        // Водій автопарку — зберігаємо в fleet_drivers
-        await set(ref(db, 'fleet_drivers/' + user.uid), {
-          name: user.displayName || 'Водій',
-          email: user.email,
-          role: 'fleet_driver',
-          fleet_code: fleetCode,
-          active: true,
-          online: false,
-          created_at: new Date().toISOString()
-        });
-        window._currentUid = user.uid;
-        window._isDriver = true;
-        window._driverType = 'fleet_driver';
-        localStorage.removeItem('nt_driver_type');
-        showToast('✅ Підключено до автопарку!');
-        showScreen('screen-driver-main');
-        if (window.initDriverScreen) window.initDriverScreen();
-        return;
-      }
-
-      const snap = await get(ref(db, 'drivers/' + user.uid));
-      if (!snap.exists()) {
-        await set(ref(db, 'drivers/' + user.uid), {
-          name: user.displayName || 'Водій',
-          email: user.email,
-          role: 'driver',
-          driver_type: driverType,
-          active: true,
-          online: false,
-          services: [driverType],
-          created_at: new Date().toISOString(),
-          trial_until: new Date(Date.now() + 7*24*60*60*1000).toISOString()
-        });
-        showToast('✅ Акаунт водія створено!');
-      } else {
-        showToast('✅ Вхід виконано!');
-      }
-      window._currentUid = user.uid;
-      window._isDriver = true;
-      window._driverType = driverType;
-      localStorage.removeItem('nt_driver_type');
-      // Ініціалізуємо FCM для фонових пушів
-      initFCM(user.uid);
-      // Перевіряємо чи заповнив реєстрацію
-      const driverSnap = await get(ref(db, 'drivers/' + user.uid));
-      const driverData = driverSnap.val() || {};
-      if (!driverData.registered) {
-        // Потрібна реєстрація
-        showScreen('screen-driver-reg');
-        window.drvRegNext(1);
-      } else {
-        showScreen('screen-driver-main');
-        if (window.initDriverScreen) window.initDriverScreen();
-      }
-    } catch(e) {
-      showToast('Помилка: ' + e.message);
-    }
+    await sendMagicLink('driver');
   };
 
-  // Google Sign In для КЛІЄНТА
+  // Magic Link Sign In для КЛІЄНТА
   window.signInGoogle = async () => {
-    try {
-      showToast('Відкриваємо Google...');
-      const result = await googleSignIn();
-      const user = result.user;
-      // зберігаємо клієнта в базі
-      await set(ref(db, 'clients/' + user.uid), {
-        name: user.displayName || 'Клієнт',
-        email: user.email,
-        created_at: new Date().toISOString(),
-        trips_count: 0
-      });
-      window._currentUid = user.uid;
-      showToast('✅ Вхід успішний!');
-      const phone = localStorage.getItem('nt_phone');
-      if (phone) showScreen('screen-main');
-      else showScreen('screen-phone');
-    } catch (e) {
-      showToast('Помилка: ' + e.message);
-    }
+    await sendMagicLink('client');
   };
 
   // Зберегти телефон
