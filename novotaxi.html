@@ -1616,6 +1616,7 @@ function initMap() {
   // Застосовуємо роль до існуючого користувача
   async function applyRole(user, role) {
     window._currentUid = user.uid;
+    localStorage.setItem('nt_user_role_' + user.uid, role);
     const displayName = user.displayName || user.email.split('@')[0];
     const email = user.email;
     closeEmailAuthModal();
@@ -1752,6 +1753,7 @@ function initMap() {
 
   // Вихід з акаунту — доступний глобально
   window.signOutUser = async () => {
+    if (auth.currentUser) localStorage.removeItem('nt_user_role_' + auth.currentUser.uid);
     try {
       await signOut(auth);
       // nt_phone не видаляємо — це дані клієнта
@@ -1779,57 +1781,95 @@ function initMap() {
     document.getElementById('loader').style.display = 'none';
     if (user) {
       window._currentUid = user.uid;
-      // Перевіряємо всі ролі послідовно
-      get(ref(db, 'fleet_owners/' + user.uid)).then(function(fleetSnap) {
-        if (fleetSnap.exists()) {
-          window._isFleetOwner = true;
-          showScreen('screen-fleet');
-          if (window.flRefreshOverview) flRefreshOverview();
-          return;
-        }
-        return get(ref(db, 'fleet_drivers/' + user.uid)).then(function(fdSnap) {
-          if (fdSnap.exists()) {
-            window._isDriver = true;
-            window._driverType = 'fleet_driver';
+      // Використовуємо збережену роль з localStorage
+      var savedRole = localStorage.getItem('nt_user_role_' + user.uid);
+      if (savedRole === 'fleet_owner') {
+        window._isFleetOwner = true;
+        showScreen('screen-fleet');
+        if (window.flRefreshOverview) flRefreshOverview();
+      } else if (savedRole === 'fleet_driver') {
+        window._isDriver = true;
+        window._driverType = 'fleet_driver';
+        showScreen('screen-driver-main');
+        if (window.initDriverScreen) window.initDriverScreen();
+      } else if (savedRole === 'driver') {
+        get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
+          window._isDriver = true;
+          var drvData = snap.val() || {};
+          window._driverType = drvData.driver_type || 'taxi';
+          if (!drvData.registered) {
+            showScreen('screen-driver-reg');
+            if (window.drvRegNext) window.drvRegNext(1);
+          } else {
             showScreen('screen-driver-main');
             if (window.initDriverScreen) window.initDriverScreen();
+          }
+        });
+      } else if (savedRole === 'track_client') {
+        window._isTrackClient = true;
+        showScreen('screen-track');
+        if (window.trackLoadDevices) window.trackLoadDevices();
+      } else if (savedRole === 'client') {
+        var phone = localStorage.getItem('nt_phone');
+        showScreen(phone ? 'screen-main' : 'screen-phone');
+        if (phone && window.startClientNotifListener) window.startClientNotifListener();
+      } else {
+        // Немає збереженої ролі — перевіряємо в базі (перший вхід)
+        get(ref(db, 'fleet_owners/' + user.uid)).then(function(fleetSnap) {
+          if (fleetSnap.exists()) {
+            localStorage.setItem('nt_user_role_' + user.uid, 'fleet_owner');
+            window._isFleetOwner = true;
+            showScreen('screen-fleet');
+            if (window.flRefreshOverview) flRefreshOverview();
             return;
           }
-          return get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
-            if (snap.exists()) {
+          return get(ref(db, 'fleet_drivers/' + user.uid)).then(function(fdSnap) {
+            if (fdSnap.exists()) {
+              localStorage.setItem('nt_user_role_' + user.uid, 'fleet_driver');
               window._isDriver = true;
-              var drvData = snap.val() || {};
-              window._driverType = drvData.driver_type || 'taxi';
-              if (!drvData.registered) {
-                showScreen('screen-driver-reg');
-                if (window.drvRegNext) window.drvRegNext(1);
-              } else {
-                showScreen('screen-driver-main');
-                if (window.initDriverScreen) window.initDriverScreen();
-              }
+              window._driverType = 'fleet_driver';
+              showScreen('screen-driver-main');
+              if (window.initDriverScreen) window.initDriverScreen();
               return;
             }
-            return get(ref(db, 'track_clients/' + user.uid)).then(function(trackSnap) {
-              if (trackSnap.exists()) {
-                window._isTrackClient = true;
-                showScreen('screen-track');
-                if (window.trackLoadDevices) window.trackLoadDevices();
+            return get(ref(db, 'drivers/' + user.uid)).then(function(snap) {
+              if (snap.exists()) {
+                localStorage.setItem('nt_user_role_' + user.uid, 'driver');
+                window._isDriver = true;
+                var drvData = snap.val() || {};
+                window._driverType = drvData.driver_type || 'taxi';
+                if (!drvData.registered) {
+                  showScreen('screen-driver-reg');
+                  if (window.drvRegNext) window.drvRegNext(1);
+                } else {
+                  showScreen('screen-driver-main');
+                  if (window.initDriverScreen) window.initDriverScreen();
+                }
                 return;
               }
-              return get(ref(db, 'clients/' + user.uid)).then(function(clientSnap) {
-                if (clientSnap.exists()) {
-                  var phone = localStorage.getItem('nt_phone');
-                  showScreen(phone ? 'screen-main' : 'screen-phone');
-                  if (phone && window.startClientNotifListener) window.startClientNotifListener();
+              return get(ref(db, 'track_clients/' + user.uid)).then(function(trackSnap) {
+                if (trackSnap.exists()) {
+                  localStorage.setItem('nt_user_role_' + user.uid, 'track_client');
+                  window._isTrackClient = true;
+                  showScreen('screen-track');
+                  if (window.trackLoadDevices) window.trackLoadDevices();
                   return;
                 }
-                // Немає жодної ролі — показуємо вибір
-                showScreen('screen-role');
+                return get(ref(db, 'clients/' + user.uid)).then(function(clientSnap) {
+                  if (clientSnap.exists()) {
+                    localStorage.setItem('nt_user_role_' + user.uid, 'client');
+                    var phone = localStorage.getItem('nt_phone');
+                    showScreen(phone ? 'screen-main' : 'screen-phone');
+                    if (phone && window.startClientNotifListener) window.startClientNotifListener();
+                    return;
+                  }
+                  showScreen('screen-role');
+                });
               });
             });
           });
-        });
-      }).catch(function() { showScreen('screen-role'); });
+        }).catch(function() { showScreen('screen-role'); });
+      }
     } else {
       showScreen('screen-role');
     }
