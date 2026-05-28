@@ -2544,6 +2544,18 @@ function initMap() {
   };
 
   window.drvRegNext = function(step) {
+    // Підставляємо збережений телефон якщо є
+    if (step === 1 && window._currentUid) {
+      var savedPhone = localStorage.getItem('nt_drv_phone_' + window._currentUid);
+      if (savedPhone) {
+        var phoneInput = document.getElementById('drv-reg-phone');
+        if (phoneInput && !phoneInput.value) {
+          phoneInput.value = savedPhone.replace('+380', '');
+          var btn = document.getElementById('drv-reg-btn1');
+          if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        }
+      }
+    }
     [1,2,3].forEach(function(i) {
       var p = document.getElementById('drv-reg-p' + i);
       if (p) p.style.display = i === step ? 'flex' : 'none';
@@ -2606,6 +2618,7 @@ function initMap() {
         active: true,
         online: false
       }));
+      localStorage.setItem('nt_drv_phone_' + uid, phone);
       showToast('✅ Реєстрацію завершено!');
       showScreen('screen-driver-main');
       if (window.initDriverScreen) window.initDriverScreen();
