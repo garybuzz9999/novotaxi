@@ -1516,6 +1516,8 @@ function initMap() {
     const onPos = pos => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
+      window._clientLat = lat;
+      window._clientLng = lng;
       map.setView([lat, lng], 15);
       if (clientMarker) { clientMarker.setLatLng([lat, lng]); }
       else { clientMarker = L.marker([lat, lng], {icon: clientIcon}).addTo(map); }
@@ -2102,14 +2104,17 @@ function initMap() {
     var clientPhone = clientData.phone || localStorage.getItem('nt_phone') || '';
     var clientName = clientData.name || user.displayName || 'Клієнт';
     // Отримуємо GPS клієнта
-    var clientLat = 0, clientLng = 0;
-    if (navigator.geolocation) {
+    var clientLat = window._clientLat || 0;
+    var clientLng = window._clientLng || 0;
+    if (!clientLat && navigator.geolocation) {
       try {
         var pos = await new Promise(function(res, rej) {
           navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000});
         });
         clientLat = pos.coords.latitude;
         clientLng = pos.coords.longitude;
+        window._clientLat = clientLat;
+        window._clientLng = clientLng;
       } catch(e) {}
     }
     var fromAddress = document.getElementById('gpsText') ? document.getElementById('gpsText').textContent : '';
@@ -2214,24 +2219,34 @@ function initMap() {
           .bindPopup(clientName + '<br>' + fromAddr).openPopup();
       }
 
-      // GPS водія
+      // GPS водія — watchPosition для живого оновлення
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
+        var drvMarker = null;
+        var drvLine = null;
+        var _drvMapWatch = navigator.geolocation.watchPosition(function(pos) {
           var drvLat = pos.coords.latitude;
           var drvLng = pos.coords.longitude;
           var drvIcon = L.divIcon({
             html: '<div style="background:#0f0f0f;color:#f5c842;padding:3px 7px;border-radius:6px;font-size:12px;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.4)">🚗 Ви</div>',
             iconSize:[50,24], iconAnchor:[25,12], className:''
           });
-          L.marker([drvLat, drvLng], {icon: drvIcon}).addTo(_drvRouteMap);
-
-          // Лінія між водієм і клієнтом
+          if (drvMarker) { drvMarker.setLatLng([drvLat, drvLng]); }
+          else {
+            drvMarker = L.marker([drvLat, drvLng], {icon: drvIcon}).addTo(_drvRouteMap);
+            if (clientLat && clientLng) {
+              _drvRouteMap.fitBounds([[drvLat, drvLng], [clientLat, clientLng]], {padding:[40,40]});
+            } else {
+              _drvRouteMap.setView([drvLat, drvLng], 15);
+            }
+          }
           if (clientLat && clientLng) {
-            L.polyline([[drvLat, drvLng], [clientLat, clientLng]], {
-              color: '#f5c842', weight: 3, dashArray: '8,6', opacity: 0.8
-            }).addTo(_drvRouteMap);
-
-            // Відстань
+            var newLine = [[drvLat, drvLng], [clientLat, clientLng]];
+            if (drvLine) { drvLine.setLatLngs(newLine); }
+            else {
+              drvLine = L.polyline(newLine, {
+                color: '#f5c842', weight: 3, dashArray: '8,6', opacity: 0.8
+              }).addTo(_drvRouteMap);
+            }
             var R = 6371;
             var dLat = (clientLat - drvLat) * Math.PI / 180;
             var dLon = (clientLng - drvLng) * Math.PI / 180;
@@ -2239,11 +2254,11 @@ function initMap() {
             var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             var mins = Math.round(dist / 0.4);
             document.getElementById('drv-map-pill').textContent = '📍 ' + dist.toFixed(1) + ' км · ~' + mins + ' хв';
-
-            // Центруємо між водієм і клієнтом
-            _drvRouteMap.fitBounds([[drvLat, drvLng], [clientLat, clientLng]], {padding:[30,30]});
           }
-        });
+        }, function() {
+          if (!drvMarker) _drvRouteMap.setView([clientLat || 50.588, clientLng || 27.658], 14);
+        }, {enableHighAccuracy: true, timeout: 10000, maximumAge: 3000});
+        window._drvMapWatchId = _drvMapWatch;
       }
       setTimeout(function() { _drvRouteMap.invalidateSize(); }, 200);
     }, 100);
@@ -2954,6 +2969,10 @@ function initMap() {
   };
 
   window.passengerIn = function() {
+    if (window._drvMapWatchId) {
+      navigator.geolocation.clearWatch(window._drvMapWatchId);
+      window._drvMapWatchId = null;
+    }
     var orderId = window._lastOrderId;
     var orderData = window._lastOrderData || {};
     var tariff = (window._tariffs && window._tariffs[orderData.vehicle_type]) || {board:30, km:5, wait:1};
@@ -4483,7 +4502,7 @@ function initMap() {
 <!-- SCREEN: КАРТА МАРШРУТУ ДО КЛІЄНТА -->
 <div class="screen" id="screen-driver-map">
   <div style="background:var(--black);padding:11px 16px;display:flex;align-items:center;justify-content:space-between">
-    <button onclick="showScreen('screen-driver-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0;margin-right:8px">‹</button>
+    <button onclick="if(window._drvMapWatchId){navigator.geolocation.clearWatch(window._drvMapWatchId);window._drvMapWatchId=null;} showScreen('screen-driver-main')" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0;margin-right:8px">‹</button>
     <div style="font-size:16px;font-weight:500"><span style="color:#fff">Novo</span><span style="color:var(--accent)">Taxi</span></div>
     <div style="font-size:12px;color:rgba(255,255,255,.6)">Їдьте до клієнта</div>
   </div>
