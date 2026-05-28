@@ -1519,6 +1519,11 @@ function initMap() {
       else { clientMarker = L.marker([lat, lng], {icon: clientIcon}).addTo(map); }
       document.getElementById('gpsDot').className = 'gps-dot found';
       document.getElementById('gpsText').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+      // Ховаємо GPS pill через 2 секунди після знаходження
+      setTimeout(() => {
+        var pill = document.getElementById('gpsPill');
+        if (pill) pill.style.display = 'none';
+      }, 2000);
       fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=uk')
         .then(r=>r.json()).then(d=>{
           const addr = d.address;
@@ -1528,7 +1533,13 @@ function initMap() {
           document.getElementById('gpsText').textContent = text;
         }).catch(()=>{});
     };
-    const onErr = () => { document.getElementById('gpsText').textContent = 'GPS не знайдено'; };
+    const onErr = () => {
+      // Ховаємо GPS pill через 3 секунди при помилці
+      setTimeout(() => {
+        var pill = document.getElementById('gpsPill');
+        if (pill) pill.style.display = 'none';
+      }, 3000);
+    };
     navigator.geolocation.getCurrentPosition(onPos, onErr, gpsOpts);
     navigator.geolocation.watchPosition(onPos, onErr, gpsOpts);
   }
@@ -4495,19 +4506,19 @@ function initMap() {
     </div>
 
     <!-- Кнопки -->
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button onclick="drvOpenExternalMaps()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <button onclick="drvOpenExternalMaps()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:16px;border-radius:14px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:15px;cursor:pointer">
         🗺️ Maps
       </button>
-      <button onclick="passengerIn()" style="flex:2;background:var(--accent);color:var(--black);border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer">
+      <button onclick="passengerIn()" style="flex:2;background:var(--accent);color:var(--black);border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer">
         🧑 Пасажир сів →
       </button>
     </div>
-    <div style="display:flex;gap:8px">
-      <button onclick="drvNotOut()" style="flex:1;padding:10px;border-radius:12px;border:.5px solid #f5a623;background:rgba(245,166,35,.08);color:#f5a623;font-size:13px;font-weight:500;cursor:pointer">
+    <div style="display:flex;gap:10px">
+      <button onclick="drvNotOut()" style="flex:1;padding:14px;border-radius:14px;border:.5px solid #f5a623;background:rgba(245,166,35,.08);color:#f5a623;font-size:14px;font-weight:500;cursor:pointer">
         ⏳ Не виходить
       </button>
-      <button onclick="drvCancelRide()" style="flex:1;padding:10px;border-radius:12px;border:.5px solid #ff453a;background:rgba(255,69,58,.08);color:#ff453a;font-size:13px;font-weight:500;cursor:pointer">
+      <button onclick="drvCancelRide()" style="flex:1;padding:14px;border-radius:14px;border:.5px solid #ff453a;background:rgba(255,69,58,.08);color:#ff453a;font-size:14px;font-weight:500;cursor:pointer">
         🚫 Відмовитись
       </button>
     </div>
