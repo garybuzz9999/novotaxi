@@ -279,12 +279,14 @@
   .toast {
     position: fixed; bottom: 80px; left: 50%;
     transform: translateX(-50%) translateY(80px);
+    opacity: 0;
     background: var(--black); color: var(--text);
     padding: 12px 22px; border-radius: 20px;
-    font-size: 14px; transition: transform 0.3s; z-index: 99;
+    font-size: 14px; transition: transform 0.3s, opacity 0.3s; z-index: 99;
     border: 1px solid var(--border); white-space: nowrap;
+    pointer-events: none;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
 
   /* READY SCREEN */
   .ready-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
@@ -3803,9 +3805,13 @@ function initMap() {
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
+    t.classList.remove('show');
+    void t.offsetWidth; // force reflow — щоб анімація перезапустилась
     t.classList.add('show');
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    window._toastTimer = setTimeout(() => {
+      t.classList.remove('show');
+    }, 3000);
   }
 
   function checkPhone() {
