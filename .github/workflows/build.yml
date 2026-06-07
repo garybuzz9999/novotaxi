@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/assets
 
       - name: Prepare web dir
         run: |
@@ -35,6 +35,12 @@ jobs:
         run: |
           npx cap init NovoTaxi com.novotaxi.app --web-dir www
           npx cap add android
+
+      - name: Generate app icons
+        run: |
+          mkdir -p resources
+          cp icon-512.png resources/icon.png
+          npx capacitor-assets generate --android
 
       - name: Fix targetSdk to 34
         run: |
